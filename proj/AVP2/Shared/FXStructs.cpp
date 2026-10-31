@@ -18,6 +18,10 @@
 #define	SCALEFX_TYPE				"Type"
 #define	SCALEFX_FILE				"File"
 #define SCALEFX_SKIN				"Skin"
+#ifdef AVP2_PRIMAL_HUNT
+#define SCALEFX_ROTATIONY			"RotationY"
+#define SCALEFX_ADDITIVEALPHA		"AdditiveAlpha"
+#endif
 #define SCALEFX_INITIALSCALE		"InitialScale"
 #define SCALEFX_FINALSCALE			"FinalScale"
 #define SCALEFX_USECOLORS			"UseColors"
@@ -196,6 +200,14 @@ CScaleFX::CScaleFX()
 	szName[0]		= '\0';
 	szFile[0]		= '\0';
 	szSkin[0]		= '\0';
+#ifdef AVP2_PRIMAL_HUNT
+	for (int nSkin = 0; nSkin < MAX_MODEL_TEXTURES-1; nSkin++)
+	{
+		szExtraSkins[nSkin][0] = '\0';
+	}
+	fRotationY		= 0.0f;
+	bAdditiveAlpha	= LTFALSE;
+#endif
 
 	vInitialScale.Init();
 	vFinalScale.Init();
@@ -258,6 +270,23 @@ LTBOOL CScaleFX::Init(CButeMgr & buteMgr, char* aTagName)
 	{
 		strncpy(szSkin, (char*)(LPCSTR)str, ARRAY_LEN(szSkin));
 	}
+
+#ifdef AVP2_PRIMAL_HUNT
+	for (int nSkin = 0; nSkin < MAX_MODEL_TEXTURES-1; nSkin++)
+	{
+		char szSkinTag[16];
+		sprintf(szSkinTag, "%s%d", SCALEFX_SKIN, nSkin + 1);
+
+		str = buteMgr.GetString(aTagName, szSkinTag, CString(""));
+		if (!str.IsEmpty())
+		{
+			strncpy(szExtraSkins[nSkin], (char*)(LPCSTR)str, ARRAY_LEN(szExtraSkins[nSkin]));
+		}
+	}
+
+	fRotationY		= (LTFLOAT) buteMgr.GetDouble(aTagName, SCALEFX_ROTATIONY, 0.0) * MATH_PI / 180.0f;
+	bAdditiveAlpha	= (LTBOOL) buteMgr.GetInt(aTagName, SCALEFX_ADDITIVEALPHA, 0);
+#endif
 
 	str = buteMgr.GetString(aTagName, SCALEFX_NAME);
 	if (!str.IsEmpty())

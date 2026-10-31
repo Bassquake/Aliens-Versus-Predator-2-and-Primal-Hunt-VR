@@ -30,12 +30,14 @@
 # Build output folders
 proj/AVP2/*/Debug/
 proj/AVP2/*/Release/
+proj/AVP2/*/Release_PH/
 proj/AVP2/*/Demo_Debug/
 proj/AVP2/*/Demo_Release/
 proj/AVP2/*/demo/
 proj/AVP2/*/final/
 proj/AVP2/*/*___Win32_*/
 proj/AVP2/AVP2/
+proj/AVP2/AVP2PH/
 proj/AVP2/AVP2Serv.exe
 proj/avp2xr/bin/
 proj/avp2xr/obj/

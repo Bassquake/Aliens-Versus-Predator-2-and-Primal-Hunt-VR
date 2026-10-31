@@ -22,8 +22,15 @@ namespace
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
+#ifdef AVP2_PRIMAL_HUNT
+CMarineWepChooser::CMarineWepChooser(LTBOOL bCorporate)
+#else
 CMarineWepChooser::CMarineWepChooser()
+#endif
 {
+#ifdef AVP2_PRIMAL_HUNT
+	m_bCorporate	= bCorporate;
+#endif
 	memset(m_ahSmallIcon, DNULL, sizeof(m_ahSmallIcon));
 	m_ahWeaponSurf	= DNULL;
 	m_bIsOpen		= DFALSE;
@@ -153,9 +160,20 @@ void CMarineWepChooser::LoadImages()
 	}
 
 	//load up the small icons and selection box
-	m_ahSmallIcon[0] = g_pClientDE->CreateSurfaceFromBitmap("interface\\statusbar\\marine\\inv_greenbox.pcx");
-	m_ahSmallIcon[1] = g_pClientDE->CreateSurfaceFromBitmap("interface\\statusbar\\marine\\inv_redbox.pcx");
-	m_hSelectBox = g_pClientDE->CreateSurfaceFromBitmap("interface\\statusbar\\marine\\inv_frame.pcx");
+#ifdef AVP2_PRIMAL_HUNT
+	if(m_bCorporate)
+	{
+		m_ahSmallIcon[0] = g_pClientDE->CreateSurfaceFromBitmap("interface\\statusbar\\corporate\\inv_greenbox.pcx");
+		m_ahSmallIcon[1] = g_pClientDE->CreateSurfaceFromBitmap("interface\\statusbar\\corporate\\inv_redbox.pcx");
+		m_hSelectBox = g_pClientDE->CreateSurfaceFromBitmap("interface\\statusbar\\corporate\\inv_frame.pcx");
+	}
+	else
+#endif
+	{
+		m_ahSmallIcon[0] = g_pClientDE->CreateSurfaceFromBitmap("interface\\statusbar\\marine\\inv_greenbox.pcx");
+		m_ahSmallIcon[1] = g_pClientDE->CreateSurfaceFromBitmap("interface\\statusbar\\marine\\inv_redbox.pcx");
+		m_hSelectBox = g_pClientDE->CreateSurfaceFromBitmap("interface\\statusbar\\marine\\inv_frame.pcx");
+	}
 
 	//store dims
 	g_pClientDE->GetSurfaceDims (m_ahWeaponSurf[0], &m_nIconWidth, &m_nIconHeight);
@@ -480,6 +498,12 @@ void CMarineWepChooser::Draw()
 			{
 				if(m_pPlayerStats->HaveWeapon(pWep->nId))
 				{
+					#ifdef AVP2_PRIMAL_HUNT
+					// The dual pistols are reached from the pistol's key, not a key of their own
+					if(strstr(pWep->szName, "Dual_Pistols"))
+						strcpy(str, "2w");
+					else
+#endif
 					sprintf(str,"%d",(i+1)%10);
 					
 					hStr = g_pClientDE->CreateString(str);
@@ -1093,6 +1117,12 @@ void CPredatorWepChooser::Draw()
 			{
 				if(m_pPlayerStats->HaveWeapon(pWep->nId))
 				{
+					#ifdef AVP2_PRIMAL_HUNT
+					// The dual pistols are reached from the pistol's key, not a key of their own
+					if(strstr(pWep->szName, "Dual_Pistols"))
+						strcpy(str, "2w");
+					else
+#endif
 					sprintf(str,"%d",(i+1)%10);
 
 					hStr = g_pClientDE->CreateString(str);

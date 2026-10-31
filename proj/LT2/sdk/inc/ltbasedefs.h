@@ -271,6 +271,9 @@
 				m_SkinNames[i][0] = 0;
 			}
 
+#ifdef AVP2_PRIMAL_HUNT
+			m_PrimalHuntFilename[0] = 0;
+#endif
 			m_Name[0] = 0;
 			m_NextUpdate = 0.0f;
 			m_fDeactivationTime = 0.0f;
@@ -306,6 +309,11 @@
 															// OT_MODEL, it's the skin filename.
 			char		m_SkinNames[MAX_MODEL_TEXTURES][MAX_CS_FILENAME_LEN+1];
 		};
+
+#ifdef AVP2_PRIMAL_HUNT
+		// Primal Hunt's engine loads this as one more file for the object; its use isn't known yet.
+		char			m_PrimalHuntFilename[MAX_CS_FILENAME_LEN+1];
+#endif
 
 		// Server only info.
 		char			m_Name[MAX_CS_FILENAME_LEN+1];		// This object's name.
@@ -1285,6 +1293,9 @@
 	#define FLAG2_SKYOBJECT			(1<<8)		// Don't render this object thru the normal stuff,
 												// only render it when processing sky objects.
 	#define FLAG2_SPRITE_TROTATE	(1<<9)		// For sprites - use the object rotation as a texture rotation
+#ifdef AVP2_PRIMAL_HUNT
+	#define FLAG2_ADDITIVE_ALPHA	(1<<14)		// Primal Hunt's engine: additive blending that keeps the alpha.
+#endif
 	#define FLAG2_SEMISOLID			(1<<10)		// A semi-solid object is non-solid to other semi-solid objects, but solid to all else.
 
 

@@ -119,6 +119,10 @@
     <TargetExt>.dll</TargetExt>
     <LinkIncremental>false</LinkIncremental>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(PrimalHunt)'=='1'">
+    <OutDir>release_ph\</OutDir>
+    <IntDir>Release_PH\</IntDir>
+  </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -342,6 +346,7 @@ copy /Y "$(TargetPath)" "$(AVP2_BUILD_DIR)\cshell.dll"</Command>
     <ClCompile Include="..\Shared\AssertMgr.cpp" />
     <ClCompile Include="..\Shared\Callback0.cpp" />
     <ClCompile Include="CameraMgr.cpp" />
+    <ClCompile Include="PrimalHuntClient.cpp" />
     <ClCompile Include="VRMgr.cpp" />
     <ClCompile Include="CameraMgrFX.cpp" />
     <ClCompile Include="..\Shared\CharacterMovement.cpp" />
@@ -559,6 +564,7 @@ copy /Y "$(TargetPath)" "$(AVP2_BUILD_DIR)\cshell.dll"</Command>
     <ClInclude Include="..\Shared\callback4.h" />
     <ClInclude Include="..\Shared\callback5.h" />
     <ClInclude Include="CameraMgr.h" />
+    <ClInclude Include="PrimalHuntClient.h" />
     <ClInclude Include="VRMgr.h" />
     <ClInclude Include="CameraMgrDefs.h" />
     <ClInclude Include="CameraMgrFX.h" />

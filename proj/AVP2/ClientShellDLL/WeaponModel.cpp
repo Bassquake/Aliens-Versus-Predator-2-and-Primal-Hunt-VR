@@ -129,6 +129,11 @@ CWeaponModel::CWeaponModel()
 	m_vFlashOffset.Init();
 
 	m_pMuzzleFlash = LTNULL;
+#ifdef AVP2_PRIMAL_HUNT
+	m_pDualMuzzleFlash = LTNULL;
+	m_nMuzzleSide = 0;
+	m_nDualFireSide = -1;
+#endif
 
 	m_eState				= W_IDLE;
 	m_eLastWeaponState		= W_IDLE;
@@ -240,6 +245,11 @@ CWeaponModel::~CWeaponModel()
 {
 	delete m_pMuzzleFlash;
 	m_pMuzzleFlash = LTNULL;
+#ifdef AVP2_PRIMAL_HUNT
+	delete m_pDualMuzzleFlash;
+	m_pDualMuzzleFlash = LTNULL;
+	m_nMuzzleSide = 0;
+#endif
 
 	//free our object
 	if (m_hObject) 
@@ -570,6 +580,11 @@ void CWeaponModel::Reset()
 	//terminate the special effects
 	delete m_pMuzzleFlash;
 	m_pMuzzleFlash = LTNULL;
+#ifdef AVP2_PRIMAL_HUNT
+	delete m_pDualMuzzleFlash;
+	m_pDualMuzzleFlash = LTNULL;
+	m_nMuzzleSide = 0;
+#endif
 
 
 	m_PVFXMgr.Term();
@@ -829,6 +844,20 @@ WeaponState CWeaponModel::UpdateWeaponModel(LTRotation rRot, LTVector vPos, LTBO
 
 	if (FiredWeapon(eState))
 	{
+#ifdef AVP2_PRIMAL_HUNT
+		// This shot comes from the other muzzle, which stays current until the next one
+		if (m_pBarrel && m_pBarrel->bDualMuzzle)
+		{
+			m_nMuzzleSide = m_nDualFireSide >= 0 ? m_nDualFireSide : !m_nMuzzleSide;
+
+			LTVector vSwap = GetMuzzleOffset() - vMuzzleOffset;
+			m_vFlashOffset += vSwap;
+			m_vFlashPos += vFlashR * vSwap.x;
+			m_vFlashPos += vFlashU * vSwap.y;
+			m_vFlashPos += vFlashF * vSwap.z;
+		}
+#endif
+
 		//start muzzle flash effects
 		m_fFlashStartTime = g_pInterface->GetTime();
 
@@ -1009,8 +1038,8 @@ void CWeaponModel::SetVisible(LTBOOL bVis)
 	
 
 	// Always hide the flash (it will be shown when needed)...
-	if( m_pMuzzleFlash )
-		m_pMuzzleFlash->Hide();
+	if( GetMuzzleFlash() )
+		GetMuzzleFlash()->Hide();
 
 	m_PVFXMgr.SetVisible(bVis);
 
@@ -1098,6 +1127,22 @@ void CWeaponModel::CreateFlash()
 		m_pMuzzleFlash->Setup(mf);
 		m_pMuzzleFlash->Hide();
 	}
+
+#ifdef AVP2_PRIMAL_HUNT
+	delete m_pDualMuzzleFlash;
+	m_pDualMuzzleFlash = LTNULL;
+
+	// The first shot flips this to 0, so it comes from the main muzzle
+	m_nMuzzleSide = m_pBarrel->bDualMuzzle ? 1 : 0;
+
+	if( m_pBarrel->bDualMuzzle && m_pBarrel->pDualPVMuzzleFX )
+	{
+		mf.bDualMuzzle = LTTRUE;
+		m_pDualMuzzleFlash = new CMuzzleFlashFX();
+		m_pDualMuzzleFlash->Setup(mf);
+		m_pDualMuzzleFlash->Hide();
+	}
+#endif
 }
 
 
@@ -1307,11 +1352,20 @@ void CWeaponModel::UpdateFlash(WeaponState eState)
 	
 	uint32 dwFlags = g_pInterface->GetObjectFlags(m_hObject);
 
+#ifdef AVP2_PRIMAL_HUNT
+	// Only the muzzle of the last shot shows a flash
+	CMuzzleFlashFX *pOtherFlash = m_nMuzzleSide ? m_pMuzzleFlash : m_pDualMuzzleFlash;
+	if( pOtherFlash )
+		pOtherFlash->Hide();
+#endif
+
+	CMuzzleFlashFX *pFlash = GetMuzzleFlash();
+
 	//if we have a muzzle flash and it's not visible, hide it
 	if (!(dwFlags & FLAG_VISIBLE) || !m_pBarrel->pPVMuzzleFX)
 	{
-		if( m_pMuzzleFlash )
-			m_pMuzzleFlash->Hide();
+		if( pFlash )
+			pFlash->Hide();
 		return;
 	}
 
@@ -1330,8 +1384,8 @@ void CWeaponModel::UpdateFlash(WeaponState eState)
 		g_pGameClientShell->GetPlayerState() != PS_ALIVE ||
 		CameraMgrFX_VolumeBrushInLiquid(hCamera))
 	{
-		if( m_pMuzzleFlash )
-			m_pMuzzleFlash->Hide();
+		if( pFlash )
+			pFlash->Hide();
 	}	
 	else
 	{
@@ -1349,12 +1403,12 @@ void CWeaponModel::UpdateFlash(WeaponState eState)
 		
 		g_pInterface->AlignRotation(&rRot, &vDir, DNULL);
 
-		if( m_pMuzzleFlash )
+		if( pFlash )
 		{
-			m_pMuzzleFlash->Show(m_bNewShot);
-			m_pMuzzleFlash->SetPos(m_vFlashPos, m_vFlashOffset);
-			m_pMuzzleFlash->SetRot(rRot);
-			m_pMuzzleFlash->Update();
+			pFlash->Show(m_bNewShot);
+			pFlash->SetPos(m_vFlashPos, m_vFlashOffset);
+			pFlash->SetRot(rRot);
+			pFlash->Update();
 		}
 
 		m_bNewShot = LTFALSE;
@@ -2158,6 +2212,10 @@ void CWeaponModel::UpdateFiring()
 		if (!PlayReloadAnimation())
 		{
 			m_eState = W_FIRING;
+#ifdef AVP2_PRIMAL_HUNT
+			// A full clip starts from the main muzzle again
+			m_nMuzzleSide = m_pBarrel && m_pBarrel->bDualMuzzle ? 1 : 0;
+#endif
 		}
 	}
 	if (m_eState == W_CHANGE_AMMO)
@@ -4296,7 +4354,16 @@ void CWeaponModel::ChangeWeapon(uint8 nCommandId, LTBOOL bNoDeselect)
 
 	if (nWeaponId == m_nWeaponId)
 	{
+#ifdef AVP2_PRIMAL_HUNT
+		// Selecting a MultiSelect weapon again moves on to its partner, if the player has it
+		WEAPON *pNext = m_pWeapon && m_pWeapon->bMultiSelect ? g_pWeaponMgr->GetWeapon(m_pWeapon->szMultiSelectNext) : LTNULL;
+		if (!pNext || !pStats->HaveWeapon(pNext->nId))
+			return;
+
+		nWeaponId = pNext->nId;
+#else
 		return;
+#endif
 	}
 
 
@@ -4771,12 +4838,26 @@ void CWeaponModel::SetWeaponOffset(LTVector vPos)
 //
 // ----------------------------------------------------------------------- //
 
+#ifdef AVP2_PRIMAL_HUNT
+LTBOOL CWeaponModel::GetDualMuzzles(LTVector &vMain, LTVector &vDual)
+{
+	if (!m_pBarrel || !m_pBarrel->bDualMuzzle) return LTFALSE;
+
+	vMain = m_pBarrel->vMuzzlePos;
+	vDual = m_pBarrel->vDualMuzzlePos;
+	return LTTRUE;
+}
+#endif
+
 LTVector CWeaponModel::GetMuzzleOffset()
 {
 	LTVector vRet;
 	vRet.Init();
 
 	if (!m_pBarrel) return vRet;
+#ifdef AVP2_PRIMAL_HUNT
+	if (m_nMuzzleSide && m_pBarrel->bDualMuzzle) return m_pBarrel->vDualMuzzlePos;
+#endif
 	return m_pBarrel->vMuzzlePos;
 }
 

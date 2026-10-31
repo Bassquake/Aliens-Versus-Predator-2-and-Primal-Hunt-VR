@@ -1949,7 +1949,11 @@ void CInterfaceMgr::HandleLoadNewLevel()
 	{
 		if ((nStatus == 1) && (!m_bPlayedOutro))
 		{
+#ifdef AVP2_PRIMAL_HUNT
+			g_pGameClientShell->LoadWorld("worlds\\exp\\exoutro", LTNULL, LTNULL, LOAD_NEW_LEVEL);
+#else
 			g_pGameClientShell->LoadWorld("worlds\\singleplayer\\outro", LTNULL, LTNULL, LOAD_NEW_LEVEL);
+#endif
 			m_Credits.Init();
 			m_bPlayedOutro = LTTRUE;
 			return;
@@ -4708,6 +4712,19 @@ void CInterfaceMgr::InitWepChooser()
 			if(m_pWeaponChooser)
 				m_pWeaponChooser->Init();
 		} break;
+#ifdef AVP2_PRIMAL_HUNT
+	case (7):
+		{
+			if(_stricmp(g_pCharacterButeMgr->GetName(m_stats.GetButeSet()), "NoHands") == 0)
+				break;
+			//we are corporate
+			m_pWeaponChooser = new CMarineWepChooser(LTTRUE);
+
+			//if all is good, initialize
+			if(m_pWeaponChooser)
+				m_pWeaponChooser->Init();
+		} break;
+#endif
 	}
 }
 

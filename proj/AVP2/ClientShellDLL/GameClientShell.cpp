@@ -32,6 +32,9 @@
 #include "AssertMgr.h"
 #include "SystemDependant.h"
 #include "LithTrackMgr.h"
+#include "PrimalHuntClient.h"
+
+#define PRIMAL_HUNT_DUAL_PISTOLS_RANK	2
 #include "PlayerMovement.h"
 #include "CheatMgr.h"
 #include "CameraMgrFX.h"
@@ -198,6 +201,10 @@ IClientShell* CreateClientShell(ILTClient *pClientDE)
 	CAssertMgr::Enable();
 
 	// Get our ClientDE pointer
+
+#ifdef AVP2_PRIMAL_HUNT
+	pClientDE = PrimalHunt_WrapClient(pClientDE);
+#endif
 
 	g_pInterface = g_pLTClient = pClientDE;
 	_ASSERT(g_pLTClient);
@@ -3718,6 +3725,10 @@ void CGameClientShell::OnMessage(DBYTE messageID, HMESSAGEREAD hMessage)
 		case MID_SHAKE_SCREEN :
 		{
 			LTVector vAmount;
+#ifdef AVP2_PRIMAL_HUNT
+			// Primal Hunt adds a flag first. When it's 0, three floats follow the vector (unused here).
+			g_pLTClient->ReadFromMessageByte(hMessage);
+#endif
 			g_pLTClient->ReadFromMessageVector(hMessage, &vAmount);
 			ShakeScreen(vAmount);
 		}
@@ -6636,6 +6647,17 @@ void CGameClientShell::HandleWeaponPickup(DBYTE nWeaponID)
 		
 		int nNewWeaponRank = GetPlayerStats()->GetWeaponIndex(nWeaponID);
 		int nCurWeaponRank = GetPlayerStats()->GetWeaponIndex(m_weaponModel.GetWeaponId());
+
+#ifdef AVP2_PRIMAL_HUNT
+		// The dual pistols are last in the weapon set, but rank just above the pistol
+		WEAPON *pNewWeapon = g_pWeaponMgr->GetWeapon(nWeaponID);
+		if( pNewWeapon && strstr(pNewWeapon->szName, "Dual_Pistols") )
+			nNewWeaponRank = PRIMAL_HUNT_DUAL_PISTOLS_RANK;
+
+		WEAPON *pCurWeapon = g_pWeaponMgr->GetWeapon(m_weaponModel.GetWeaponId());
+		if( pCurWeapon && strstr(pCurWeapon->szName, "Dual_Pistols") )
+			nCurWeaponRank = PRIMAL_HUNT_DUAL_PISTOLS_RANK;
+#endif
 
 		if( nNewWeaponRank != WMGR_INVALID_ID )
 		{

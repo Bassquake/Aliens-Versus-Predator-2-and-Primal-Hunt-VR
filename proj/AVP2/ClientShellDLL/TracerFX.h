@@ -45,6 +45,10 @@ class CTracerFX : public CSpecialFX
 			m_fVelocity		= 0.0f;
 			m_vDir.Init(0, 0, 0);
 			m_vTracerPos.Init();
+#ifdef AVP2_PRIMAL_HUNT
+			m_fSegmentTime	= 0.0f;
+			m_vSegmentStart.Init();
+#endif
 		}
 
         virtual LTBOOL Init(HLOCALOBJ hServObj, HMESSAGEREAD hRead);
@@ -52,6 +56,10 @@ class CTracerFX : public CSpecialFX
         virtual LTBOOL Update();
 
 	protected :
+
+#ifdef AVP2_PRIMAL_HUNT
+		void			UpdateSingleSegment();
+#endif
 
 		TRCREATESTRUCT	m_cs;
 
@@ -62,6 +70,10 @@ class CTracerFX : public CSpecialFX
         LTFLOAT         m_fLifetime;
 		LTFLOAT			m_fVelocity;
         LTVector        m_vTracerPos;
+#ifdef AVP2_PRIMAL_HUNT
+		LTFLOAT			m_fSegmentTime;		// Time since a single segment tracer started
+		LTVector		m_vSegmentStart;	// Where it started
+#endif
 
 		CPolyLineFX		m_Tracer;
 };

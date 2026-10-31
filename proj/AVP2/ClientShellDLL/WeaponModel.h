@@ -88,7 +88,16 @@ class CWeaponModel
 
 		LTVector GetWeaponOffset();
 		LTVector GetMuzzleOffset();
+#ifdef AVP2_PRIMAL_HUNT
+		int GetMuzzleSide() const { return m_nMuzzleSide; }
+		void SetDualFireSide(int nSide) { m_nDualFireSide = nSide; }	// -1: shots take turns
+		LTBOOL GetDualMuzzles(LTVector &vMain, LTVector &vDual);
+#endif
+#ifdef AVP2_PRIMAL_HUNT
+		CMuzzleFlashFX* GetMuzzleFlash() const	{ return m_nMuzzleSide ? m_pDualMuzzleFlash : m_pMuzzleFlash; }
+#else
 		CMuzzleFlashFX* GetMuzzleFlash() const	{ return m_pMuzzleFlash; }
+#endif
 		CPVFXMgr*	GetPVFXMgr()				{ return &m_PVFXMgr; }
 
 		// VR: puts the attachments (the blowtorch's dark glass) on their sockets again, after the
@@ -278,6 +287,11 @@ class CWeaponModel
 		LTFLOAT		m_fFlashStartTime;	// When did flash start
 
 		CMuzzleFlashFX * m_pMuzzleFlash;
+#ifdef AVP2_PRIMAL_HUNT
+		CMuzzleFlashFX * m_pDualMuzzleFlash;	// The second muzzle's, for a BARREL::bDualMuzzle barrel
+		int			m_nMuzzleSide;				// Muzzle of the last shot: 1 for the second muzzle
+		int			m_nDualFireSide;			// The muzzle the next shot must use, or -1 to take turns
+#endif
 
 		LTFLOAT		m_fBobHeight;
 		LTFLOAT		m_fBobWidth;

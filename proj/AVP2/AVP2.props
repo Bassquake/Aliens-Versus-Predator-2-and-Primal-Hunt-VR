@@ -10,6 +10,10 @@
     LT2_DIR         LithTech engine headers/libs       (default: $(PROJ_DIR)\LT2)
     AVP2_DIR        game code directory                (default: this folder)
     AVP2_BUILD_DIR  where built dlls/lto are copied    (default: $(AVP2_DIR)\AVP2)
+
+  Building with /p:PrimalHunt=1 makes a client for Primal Hunt's engine (defines
+  AVP2_PRIMAL_HUNT). Its intermediates and output stay apart from the normal build:
+  the copied cshell.dll goes to $(AVP2_DIR)\AVP2PH.
     DXSDK_DIR       DirectX SDK root (DX8.1 or later, needed for d3dtypes.h)
 -->
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
@@ -17,10 +21,16 @@
     <AVP2_DIR Condition="'$(AVP2_DIR)'==''">$(MSBuildThisFileDirectory.TrimEnd('\'))</AVP2_DIR>
     <PROJ_DIR Condition="'$(PROJ_DIR)'==''">$([System.IO.Path]::GetDirectoryName('$(AVP2_DIR)'))</PROJ_DIR>
     <LT2_DIR Condition="'$(LT2_DIR)'==''">$(PROJ_DIR)\LT2</LT2_DIR>
+    <AVP2_BUILD_DIR Condition="'$(AVP2_BUILD_DIR)'=='' and '$(PrimalHunt)'=='1'">$(AVP2_DIR)\AVP2PH</AVP2_BUILD_DIR>
     <AVP2_BUILD_DIR Condition="'$(AVP2_BUILD_DIR)'==''">$(AVP2_DIR)\AVP2</AVP2_BUILD_DIR>
     <AVP2_DXINC Condition="'$(DXSDK_DIR)'!=''">$(DXSDK_DIR.TrimEnd('\'))\Include;</AVP2_DXINC>
     <AVP2_DXLIB Condition="'$(DXSDK_DIR)'!=''">$(DXSDK_DIR.TrimEnd('\'))\Lib\x86;$(DXSDK_DIR.TrimEnd('\'))\Lib;</AVP2_DXLIB>
   </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(PrimalHunt)'=='1'">
+    <ClCompile>
+      <PreprocessorDefinitions>AVP2_PRIMAL_HUNT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+  </ItemDefinitionGroup>
   <ItemDefinitionGroup>
     <ClCompile>
       <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories);$(AVP2_DXINC)$(LT2_DIR)\lithshared\incs;$(LT2_DIR)\lithshared\wonapi;$(LT2_DIR)\sdk\inc;$(LT2_DIR)\sdk\inc\compat</AdditionalIncludeDirectories>

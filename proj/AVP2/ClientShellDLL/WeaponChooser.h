@@ -33,7 +33,11 @@ public:
 class CMarineWepChooser : public CWeaponChooser
 {
 public:
+#ifdef AVP2_PRIMAL_HUNT
+	CMarineWepChooser(LTBOOL bCorporate = LTFALSE);
+#else
 	CMarineWepChooser();
+#endif
 	~CMarineWepChooser();
 
 	void	Term();
@@ -55,6 +59,9 @@ private:
 	HSURFACE*	m_ahWeaponSurf;
 	DBOOL		m_bIsOpen;
 	LTBOOL		m_bClosing;
+#ifdef AVP2_PRIMAL_HUNT
+	LTBOOL		m_bCorporate;		//use the corporate interface images
+#endif
 
 	float		m_fStartTime;
 	float		m_fFinishTime;

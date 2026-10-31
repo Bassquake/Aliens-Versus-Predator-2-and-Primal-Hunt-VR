@@ -48,6 +48,8 @@
 #define AVP2XR_BTN_ADJUST		0x2000000	// hand adjust mode on/off: fit the weapon in each hand with the sticks
 										// (unbound unless avp2xr.ini binds it)
 #define AVP2XR_BTN_TWOHAND		0x4000000	// held: two-handed aiming, the left hand on the gun (Marine, Predator)
+#define AVP2XR_BTN_FIRELEFT		0x8000000	// held: fires the left of Primal Hunt's dual pistols. Sent as soon
+										// as it's pressed even on an input that has a long press too
 
 // SubmitStereo hudFlags
 #define AVP2XR_HUD_FOLLOWS		1	// a HUD-only image follows with the next flip; it is shown

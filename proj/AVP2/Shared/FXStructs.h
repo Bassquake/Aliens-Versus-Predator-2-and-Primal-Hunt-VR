@@ -37,6 +37,11 @@ struct CScaleFX
 	char		szName[FXSTRUCT_MAX_NAME_LENGTH];
 	char		szFile[FXSTRUCT_MAX_FILE_PATH];
 	char		szSkin[FXSTRUCT_MAX_FILE_PATH];
+#ifdef AVP2_PRIMAL_HUNT
+	char		szExtraSkins[MAX_MODEL_TEXTURES-1][FXSTRUCT_MAX_FILE_PATH];	// Skin1 on, for a model with several
+	LTFLOAT		fRotationY;		// Initial rotation, in radians
+	LTBOOL		bAdditiveAlpha;
+#endif
     LTVector    vInitialScale;
     LTVector    vFinalScale;
     LTBOOL      bUseColors;

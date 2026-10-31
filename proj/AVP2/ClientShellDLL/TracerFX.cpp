@@ -111,6 +111,11 @@ LTBOOL CTracerFX::Init(SFXCREATESTRUCT* psfxCreateStruct)
 //
 // ----------------------------------------------------------------------- //
 
+#ifdef AVP2_PRIMAL_HUNT
+#define TRACER_SINGLE_SEGMENT_LIFETIME	0.5f
+#define TRACER_SINGLE_SEGMENT_END		0.1f	// The tail stops this short of the target
+#endif
+
 LTBOOL CTracerFX::Update()
 {
     if (!m_pClientDE || !m_cs.pTracerFX) return LTFALSE;
@@ -123,6 +128,13 @@ LTBOOL CTracerFX::Update()
 		m_fStartTime	= fTime;
 
 		PLFXCREATESTRUCT pls;
+
+#ifdef AVP2_PRIMAL_HUNT
+		if (m_cs.pTracerFX->bSingleSegment)
+		{
+			m_cs.vStartPos -= m_vDir * g_pLTClient->GetFrameTime() * m_fVelocity;
+		}
+#endif
 
 		m_vTracerPos = m_cs.vStartPos + (m_vDir * g_pLTClient->GetFrameTime() * m_fVelocity);
 
@@ -149,6 +161,16 @@ LTBOOL CTracerFX::Update()
 		pls.nNumSegments			= (int)g_cvarTracerSegments.GetFloat();
         pls.bAlignUp                = LTTRUE;
 
+#ifdef AVP2_PRIMAL_HUNT
+		if (m_cs.pTracerFX->bSingleSegment)
+		{
+			m_vSegmentStart		= pls.vStartPos;
+			m_fLifetime			= TRACER_SINGLE_SEGMENT_LIFETIME;
+			pls.fLifeTime		= TRACER_SINGLE_SEGMENT_LIFETIME;
+			pls.fAlphaLifeTime	= TRACER_SINGLE_SEGMENT_LIFETIME;
+		}
+#endif
+
 		if (!m_Tracer.Init(&pls) || !m_Tracer.CreateObject(m_pClientDE))
 		{
             return LTFALSE;
@@ -164,6 +186,14 @@ LTBOOL CTracerFX::Update()
 
 	m_Tracer.Update();
 
+
+#ifdef AVP2_PRIMAL_HUNT
+	if (m_cs.pTracerFX->bSingleSegment)
+	{
+		UpdateSingleSegment();
+		return LTTRUE;
+	}
+#endif
 
 	// Update the tracer positions...
 
@@ -210,6 +240,32 @@ LTBOOL CTracerFX::Update()
 
     return LTTRUE;
 }
+
+#ifdef AVP2_PRIMAL_HUNT
+// The head covers the whole distance in the tracer's life, the tail half of it
+void CTracerFX::UpdateSingleSegment()
+{
+	m_fSegmentTime += g_pLTClient->GetFrameTime();
+
+	if (!m_Tracer.HasBeenDrawn()) return;
+
+	PolyLineList* pLines = m_Tracer.GetLines();
+	if (pLines->GetLength() == 0) return;
+
+	PolyLine** pLine = pLines->GetItem(TLIT_FIRST);
+	if (!pLine || !*pLine) return;
+
+	PolyVertStruct** pTail = (*pLine)->list.GetItem(TLIT_FIRST);
+	PolyVertStruct** pHead = (*pLine)->list.GetItem(TLIT_LAST);
+	if (!pTail || !*pTail || !pHead || !*pHead) return;
+
+	LTFLOAT fHead = LTMIN(m_fDist * 2.0f * m_fSegmentTime, m_fDist);
+	LTFLOAT fTail = LTMIN(m_fDist * m_fSegmentTime, m_fDist - TRACER_SINGLE_SEGMENT_END);
+
+	(*pTail)->vPos += (m_vSegmentStart + m_vDir * fTail) - m_Tracer.GetVertPos(*pTail);
+	(*pHead)->vPos += (m_vSegmentStart + m_vDir * fHead) - m_Tracer.GetVertPos(*pHead);
+}
+#endif
 
 //-------------------------------------------------------------------------------------------------
 // SFX_TracerFactory

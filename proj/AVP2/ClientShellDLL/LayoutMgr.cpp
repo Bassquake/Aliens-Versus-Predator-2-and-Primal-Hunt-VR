@@ -5,6 +5,10 @@
 #include "stdafx.h"
 #include "LayoutMgr.h"
 #include "FolderMgr.h"
+#ifdef AVP2_PRIMAL_HUNT
+#include "GameClientShell.h"
+#include "PlayerStats.h"
+#endif
 
 //attribute (bute) file defines
 ;
@@ -72,7 +76,11 @@ const char* const LO_MISC_AIRFONT			=	"HUDAirFont";
 const char* const LO_MISC_CHOOSERFONT		=	"HUDChooserFont";
 const char* const LO_MISC_CHOOSER_HCOLOR	=	"HUDChooserHColor";
 const char* const LO_MISC_ALIENFONT			=	"AlienFontBase";
+#ifdef AVP2_PRIMAL_HUNT
+const char* const LO_MISC_MARINEFONT		=	"CorpFontBase";	// The campaign in the marine's place is corporate
+#else
 const char* const LO_MISC_MARINEFONT		=	"MarineFontBase";
+#endif
 const char* const LO_MISC_PREDATORFONT		=	"PredatorFontBase";
 
 const char* const LO_MISC_PDAFONT			=	"PDAFontBase";
@@ -90,7 +98,17 @@ const char* const LO_MT_TYPE_SOUND			=	"TypeSound";
 const char* const LO_MT_SCROLL_SOUND		=	"ScrollSound";
 
 //attribute (bute) file defines=
+#ifdef AVP2_PRIMAL_HUNT
+// Corporate characters (HUD type 7) have their own motion tracker art
+static const char* MotionDetectorTag()
+{
+	CPlayerStats *pStats = g_pGameClientShell ? g_pGameClientShell->GetPlayerStats() : LTNULL;
+	return pStats && pStats->GetHUDType() == 7 ? "HUDMotionDetector_Corporate" : "HUDMotionDetector";
+}
+#define HUD_MD_TAG	MotionDetectorTag()
+#else
 const char* const HUD_MD_TAG				=	"HUDMotionDetector";
+#endif
 const char* const HUD_MD_SMALL_NUMS			=	"SmallNums";
 const char* const HUD_MD_LARGE_NUMS			=	"LargeNums";
 const char* const HUD_MD_GRID_OFFSET		=	"GridOffset";
@@ -288,7 +306,11 @@ const char* const s_aFolderTag[FOLDER_ID_UNASSIGNED+1] =
 	"FolderMouse",			//FOLDER_ID_MOUSE,
 	"FolderKeyboard",		//FOLDER_ID_KEYBOARD,
 	"FolderCustomLevel",    //FOLDER_ID_CUSTOM_LEVEL,
+#ifdef AVP2_PRIMAL_HUNT
+	"FolderCorporateMissions",	//FOLDER_ID_MARINE_MISSIONS,
+#else
 	"FolderMarineMissions",	//FOLDER_ID_MARINE_MISSIONS,
+#endif
 	"FolderPredatorMissions",	//FOLDER_ID_PREDATOR_MISSIONS,
 	"FolderAlienMissions",	//FOLDER_ID_ALIEN_MISSIONS,
 	"FolderLoad",			//FOLDER_ID_LOAD,
@@ -1522,6 +1544,18 @@ DDWORD		CLayoutMgr::GetNumMDGridImages()
 
 	return 0;
 }
+
+#ifdef AVP2_PRIMAL_HUNT
+DIntPt		CLayoutMgr::GetMDRangeOffset()
+{
+	return GetPoint(HUD_MD_TAG, "RangeOffset");
+}
+
+DIntPt		CLayoutMgr::GetMDRangeSmallOffset()
+{
+	return GetPoint(HUD_MD_TAG, "RangeSmallOffset");
+}
+#endif
 
 DIntPt		CLayoutMgr::GetMDGridOffset()
 {

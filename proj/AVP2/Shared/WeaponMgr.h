@@ -222,6 +222,11 @@ struct BARREL
 	LTFLOAT		fHHBreachOffset;
 	LTFLOAT		fPVBreachOffset;
 	CMuzzleFX*	pHHMuzzleFX;	// Hand-held muzzle fx
+#ifdef AVP2_PRIMAL_HUNT
+	LTBOOL		bDualMuzzle;		// Shots alternate between vMuzzlePos and vDualMuzzlePos
+	LTVector	vDualMuzzlePos;
+	CMuzzleFX*	pDualPVMuzzleFX;	// Player-view muzzle fx of the second muzzle
+#endif
 	char		szFireSound[WMGR_MAX_FILE_PATH];
 	char		szAltFireSound[WMGR_MAX_FILE_PATH];
 	char		szDryFireSound[WMGR_MAX_FILE_PATH];
@@ -289,6 +294,11 @@ struct WEAPON
 
 	LTBOOL	bLoopFireAnim;
 	LTBOOL	bLoopAltFireAnim;
+
+#ifdef AVP2_PRIMAL_HUNT
+	LTBOOL	bMultiSelect;							// Selecting this weapon again changes to szMultiSelectNext
+	char	szMultiSelectNext[WMGR_MAX_NAME_LENGTH];
+#endif
 
 	uint8	nAimingPitchSet;
 	LTFLOAT fSpeedMod;

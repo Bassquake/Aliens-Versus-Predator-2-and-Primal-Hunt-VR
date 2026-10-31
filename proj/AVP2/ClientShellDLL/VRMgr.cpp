@@ -196,18 +196,27 @@ static LTBOOL CrosshairFilterFn(HOBJECT hObj, void *pUserData)
 	return BodyPropListFilterFn(hObj, pUserData);
 }
 
+// Primal Hunt's dual pistols are one model with both arms, named differently
+#ifdef AVP2_PRIMAL_HUNT
+#define VR_DUAL_NODE(name)	name
+#define VR_NODE_NAMES		5
+#else
+#define VR_DUAL_NODE(name)	"_zN_none"
+#define VR_NODE_NAMES		4
+#endif
+
 // Right wrist and middle-finger base node names used by the first-person models
-static const char *s_szWristNodes[] = { "Wrist_r1", "_zN_Wrist_r1", "r_wrist", "_zN_r_wrist" };
-static const char *s_szKnuckleNodes[] = { "Middle_r1", "_zN_Middle_r1", "r_middle1", "_zN_r_middle1" };
+static const char *s_szWristNodes[] = { "Wrist_r1", "_zN_Wrist_r1", "r_wrist", "_zN_r_wrist", VR_DUAL_NODE("Bone_R_Wrist") };
+static const char *s_szKnuckleNodes[] = { "Middle_r1", "_zN_Middle_r1", "r_middle1", "_zN_r_middle1", VR_DUAL_NODE("Bone07") };
 
 // The left arm in the first-person models: the Marine ones (forearm jnt66_1, wrist jnt66_2, middle
 // knuckle Middle_r5) and the Alien and Predator ones (ll_arm, l_wrist, l_middle1). The root takes
 // the whole arm with it, hand and fingers (and the Predator's wrist computer) included.
-static const char *s_szLeftArmNodes[] = { "jnt66_1", "_zN_jnt66_1", "ll_arm", "_zN_ll_arm" };
-static const char *s_szLeftWristNodes[] = { "jnt66_2", "_zN_jnt66_2", "l_wrist", "_zN_l_wrist" };
-static const char *s_szLeftKnuckleNodes[] = { "Middle_r5", "_zN_Middle_r5", "l_middle1", "_zN_l_middle1" };
-static const char *s_szLeftPointerNodes[] = { "Pointer_r5", "_zN_Pointer_r5", "l_pointer1", "_zN_l_pointer1" };
-static const char *s_szLeftPinkyNodes[] = { "Pinky_r5", "_zN_Pinky_r5", "l_pinky1", "_zN_l_pinky1" };
+static const char *s_szLeftArmNodes[] = { "jnt66_1", "_zN_jnt66_1", "ll_arm", "_zN_ll_arm", VR_DUAL_NODE("Bone_L_Arm") };
+static const char *s_szLeftWristNodes[] = { "jnt66_2", "_zN_jnt66_2", "l_wrist", "_zN_l_wrist", VR_DUAL_NODE("Bone_L_Wrist") };
+static const char *s_szLeftKnuckleNodes[] = { "Middle_r5", "_zN_Middle_r5", "l_middle1", "_zN_l_middle1", VR_DUAL_NODE("Bone23") };
+static const char *s_szLeftPointerNodes[] = { "Pointer_r5", "_zN_Pointer_r5", "l_pointer1", "_zN_l_pointer1", VR_DUAL_NODE("Bone19") };
+static const char *s_szLeftPinkyNodes[] = { "Pinky_r5", "_zN_Pinky_r5", "l_pinky1", "_zN_l_pinky1", VR_DUAL_NODE("Bone26") };
 static const char **s_pszLeftHandNodes[4] = { s_szLeftWristNodes, s_szLeftKnuckleNodes, s_szLeftPointerNodes, s_szLeftPinkyNodes };
 
 // First-person models whose left arm is in pieces of its own (and no other piece uses its nodes),
@@ -251,6 +260,9 @@ static const ArmPieces s_ArmPieces[] =
 	{ "penergysift_pv.abc", "ll_arm_zTex0_left ll_arm_zTex0", "r_thumb_zTex1 sphere4_zTex3" },
 	// the Marine and Predator ones above with "_left" pieces are split by tools/splitarms.py (the copies in vrrez)
 	{ "pwristblades_pv.abc", "ll_arm_zTex0 l_hand_zTex0 l_thumb_zTex0 door1_zTex0 door2_zTex0", "rl_arm_zTex1 r_hand_zTex1 r_thumb_zTex1 blade2_zTex1 blade1_zTex1" },
+#ifdef AVP2_PRIMAL_HUNT
+	{ "mdualpistol_pv.abc", "R_Pistol01 R_Pistol_Slide01 R_Arm01", "R_Pistol R_Pistol_Slide R_Arm" },
+#endif
 };
 
 // The space-separated names in szList, into aNames; returns how many
@@ -531,6 +543,9 @@ VRMgr::VRMgr()
 	m_nCycleSelectTime = 0;
 	m_bMenuInput = LTFALSE;
 	m_bCrosshairHit = LTFALSE;
+#ifdef AVP2_PRIMAL_HUNT
+	m_bLeftCrosshairHit = LTFALSE;
+#endif
 	m_bCrosshairEye[0] = m_bCrosshairEye[1] = LTFALSE;
 	m_bEyeView[0] = m_bEyeView[1] = LTFALSE;
 	m_nMarkers = 0;
@@ -558,6 +573,9 @@ VRMgr::VRMgr()
 	m_nMenuRepeatTime = 0;
 	m_nIgnoreButtons = 0;
 	m_bTwoHanded = LTFALSE;
+#ifdef AVP2_PRIMAL_HUNT
+	m_bDualShots = LTFALSE;
+#endif
 	m_nButtons = 0;
 	m_bObjectivesOn = LTFALSE;
 	m_bLastFrameInput = LTFALSE;
@@ -1052,6 +1070,10 @@ void VRMgr::DrawEyeOverlays()
 		g_pGameClientShell->GetSFXMgr()->PostRenderDrawInEyes();
 		g_pLTClient->EndOptimized2D();
 	}
+#ifdef AVP2_PRIMAL_HUNT
+	AddLeftCrosshair();
+	m_bLeftCrosshairHit = LTFALSE;
+#endif
 	m_bEyeView[0] = m_bEyeView[1] = LTFALSE;
 
 	// Every frame, so ones no longer added go away
@@ -1071,6 +1093,15 @@ void VRMgr::AddMarker(const char *szImage, HSURFACE hImage, int nEye, LTFLOAT fX
 	const uint32 *pPixels = LTNULL;
 	uint32 nWidth = 0, nHeight = 0, nId = 0;
 	if(!CCrosshairMgr::GetVRImage(szImage, hImage, m_bSmoothCrosshair, pPixels, nWidth, nHeight, nId))
+		return;
+
+	AddMarkerImage(pPixels, nWidth, nHeight, nId, nEye, fX, fY, fHalfW, fHalfH, fAngle, fAlpha);
+}
+
+void VRMgr::AddMarkerImage(const uint32 *pPixels, uint32 nWidth, uint32 nHeight, uint32 nId, int nEye, LTFLOAT fX, LTFLOAT fY,
+						   LTFLOAT fHalfW, LTFLOAT fHalfH, LTFLOAT fAngle, LTFLOAT fAlpha)
+{
+	if(!CanAddMarkers() || m_nMarkers >= AVP2XR_MAX_MARKERS || !m_nScreenWidth || !m_nScreenHeight)
 		return;
 
 	// The slot avp2xr has this image in, else give it one
@@ -1102,6 +1133,33 @@ void VRMgr::AddMarker(const char *szImage, HSURFACE hImage, int nEye, LTFLOAT fX
 	m.angle = fAngle;
 	m.alpha = fAlpha;
 }
+
+#ifdef AVP2_PRIMAL_HUNT
+// avp2xr draws one crosshair per eye, so the left dual pistol's is a marker with the same image
+void VRMgr::AddLeftCrosshair()
+{
+	if(!m_bLeftCrosshairHit || !CanAddMarkers())
+		return;
+
+	const uint32 *pPixels = LTNULL;
+	uint32 nWidth = 0, nHeight = 0, nId = 0;
+	LTFLOAT fHalfW = 0.0f, fHalfH = 0.0f, fAlpha = 1.0f;
+	CCrosshairMgr *pCrosshair = g_pGameClientShell->GetInterfaceMgr()->GetCrosshairMgr();
+	if(!pCrosshair->GetVRCrosshairImage(m_bSmoothCrosshair, pPixels, nWidth, nHeight, nId, fHalfW, fHalfH, fAlpha))
+		return;
+
+	for(int nEye = 0; nEye < 2; nEye++)
+	{
+		LTFLOAT fX, fY, fScaleX, fScaleY;
+		LTRect rEye;
+		if(!ProjectToEye(nEye, m_vLeftCrosshairPos, fX, fY, fScaleX, fScaleY, rEye))
+			continue;
+		if(fX >= m_rEyeViewRect[nEye].left && fX < m_rEyeViewRect[nEye].right &&
+		   fY >= m_rEyeViewRect[nEye].top && fY < m_rEyeViewRect[nEye].bottom)
+			AddMarkerImage(pPixels, nWidth, nHeight, nId, nEye, fX, fY, fHalfW * fScaleX, fHalfH * fScaleY, 0.0f, fAlpha);
+	}
+}
+#endif
 
 // ----------------------------------------------------------------------- //
 
@@ -1296,6 +1354,21 @@ void VRMgr::UpdateButtons()
 		nNow = (m_nAdjustHand == 2) ? (nNow & AVP2XR_BTN_FIRE) : 0;	// fitting the muzzle, fire to see it
 	else if(nRawPressed & ~VR_NO_DEATH_SKIP_BUTTONS)
 		g_pGameClientShell->SkipDeath();
+
+#ifdef AVP2_PRIMAL_HUNT
+	// Each trigger fires its own dual pistol, both at once take turns
+	CWeaponModel *pDualWeapon = g_pGameClientShell->GetWeaponModel();
+	if(m_bDualShots && !m_bAdjusting)
+	{
+		LTBOOL bRight = (nNow & AVP2XR_BTN_FIRE) != 0;
+		LTBOOL bLeft = (nNow & AVP2XR_BTN_FIRELEFT) != 0;
+		pDualWeapon->SetDualFireSide(bRight == bLeft ? -1 : (bLeft ? 1 : 0));
+		if(bLeft)
+			nNow |= AVP2XR_BTN_FIRE;
+	}
+	else
+		pDualWeapon->SetDualFireSide(-1);
+#endif
 
 	// The left hand's gestures below are off while it holds the gun (the TwoHand button, the left
 	// grip), so moving it about on the gun doesn't bring out the hacking device or reload
@@ -2070,8 +2143,14 @@ void VRMgr::GetEyeCamera(int nEye, HCAMERA hCamera, const LTVector &vPos, const 
 		// (TwoHandedHandOnGun) it turns so the left hand's place on it (m_vTwoHandGrip: the
 		// smartgun's handle, off to the side) is on the line to the off hand, rather than the barrel.
 		// Not with the hacking device: the left hand holds its cable, and snapped to the device.
-		m_bTwoHanded = m_bTwoHanded && m_Input.offValid && !m_bHackModel;
-		if(m_Input.offValid && g_vtVRTwoHanded.GetFloat() != 0.0f && !m_bHackModel)
+#ifdef AVP2_PRIMAL_HUNT
+		// Each hand has its own pistol
+		const LTBOOL bNoTwoHands = m_bHackModel || m_bDualShots;
+#else
+		const LTBOOL bNoTwoHands = m_bHackModel;
+#endif
+		m_bTwoHanded = m_bTwoHanded && m_Input.offValid && !bNoTwoHands;
+		if(m_Input.offValid && g_vtVRTwoHanded.GetFloat() != 0.0f && !bNoTwoHands)
 		{
 			LTVector vOff = vPos + Rotate(rYaw, FromXrPos(m_Input.offPosition, ref) * fScale);
 			LTVector vR, vU, vF;
@@ -2363,6 +2442,14 @@ LTBOOL VRMgr::GetAimPose(LTVector &vPos, LTRotation &rRot) const
 
 	vPos = m_bLastFrameMuzzle ? m_vShotPos : m_vAimPos;
 	rRot = m_rShotRot;
+#ifdef AVP2_PRIMAL_HUNT
+	if(m_bDualShots && m_bLastFrameMuzzle)
+	{
+		int nSide = g_pGameClientShell->GetWeaponModel()->GetMuzzleSide();
+		vPos = m_vDualShotPos[nSide];
+		rRot = m_rDualShotRot[nSide];
+	}
+#endif
 	return LTTRUE;
 }
 
@@ -2418,8 +2505,8 @@ void VRMgr::PlaceWeapon()
 	LTFLOAT fScale = g_vtVRGunScale.GetFloat();
 	LTVector vWrist, vKnuckle, vPalm;
 	const char *szGrip = "default";
-	LTBOOL bWrist = FindModelNode(hWeapon, s_szWristNodes, 4, vWrist);
-	LTBOOL bKnuckle = FindModelNode(hWeapon, s_szKnuckleNodes, 4, vKnuckle);
+	LTBOOL bWrist = FindModelNode(hWeapon, s_szWristNodes, VR_NODE_NAMES, vWrist);
+	LTBOOL bKnuckle = FindModelNode(hWeapon, s_szKnuckleNodes, VR_NODE_NAMES, vKnuckle);
 	if(pWeapon->GetWeapon() != m_pGripWeapon)
 	{
 		m_pGripWeapon = pWeapon->GetWeapon();
@@ -2542,6 +2629,9 @@ void VRMgr::PlaceWeapon()
 
 	// Where the shots go, for the crosshair
 	m_bCrosshairHit = LTFALSE;
+#ifdef AVP2_PRIMAL_HUNT
+	m_bLeftCrosshairHit = LTFALSE;
+#endif
 	CCrosshairMgr *pCrosshair = g_pGameClientShell->GetInterfaceMgr()->GetCrosshairMgr();
 	if(m_bShowCrosshair && pCrosshair && pCrosshair->WantsVRCrosshair() && WeaponHasCrosshair(pWeapon->GetWeapon()))
 	{
@@ -2577,6 +2667,58 @@ void VRMgr::PlaceWeapon()
 	m_fWeaponScale = (fScale > 0.01f) ? fScale : 0.01f;
 
 	PlaceLeftArm(hWeapon, pWeapon->GetWeapon(), pWeapon->GetState());
+
+#ifdef AVP2_PRIMAL_HUNT
+	// The dual pistols' second muzzle is on the left arm, which follows the left controller. Here,
+	// with the arm placed for this frame (RestoreWeapon takes the arm copy away after each one).
+	LTVector vDualMuzzle[2];
+	m_bDualShots = pWeapon->GetDualMuzzles(vDualMuzzle[0], vDualMuzzle[1]);
+	if(m_bDualShots)
+	{
+		LTBOOL bLeftHand = (m_bArmActive || m_bArmCopyActive) && m_bOffWorld;
+		LTVector vFit = Rotate(m_rAimRot, LTVector(m_fMuzzleFit[2], m_fMuzzleFit[1], m_fMuzzleFit[0]) * (g_vtVRWorldScale.GetFloat() / 100.0f));
+
+		// Both, since firing changes the side after this frame's placement (see GetAimPose)
+		for(int nSide = 0; nSide < 2; nSide++)
+		{
+			LTVector vSide = vFlatEye + (vDualMuzzle[nSide] - vFlatEye) * g_vtVRFlashDepth.GetFloat();
+			if(nSide && bLeftHand)
+				m_mArm.Apply(vSide);
+			m_vDualShotPos[nSide] = vOrigin + Rotate(m_rAimRot, vSide * fScale) + vFit;
+			m_rDualShotRot[nSide] = (nSide && bLeftHand) ? m_rOffRot : m_rShotRot;
+		}
+
+		// Each crosshair from its own pistol: the shot position above is the last shot's
+		if(m_bCrosshairHit)
+		{
+			for(int nSide = 0; nSide < (bLeftHand ? 2 : 1); nSide++)
+			{
+				LTVector vAimDir = Rotate(m_rDualShotRot[nSide], LTVector(0.0f, 0.0f, 1.0f));
+				IntersectQuery iq;
+				IntersectInfo ii;
+				iq.m_From = m_vDualShotPos[nSide];
+				iq.m_To = m_vDualShotPos[nSide] + vAimDir * VR_CROSSHAIR_RANGE;
+				iq.m_Flags = INTERSECT_OBJECTS | IGNORE_NONSOLID;
+				iq.m_FilterFn = CrosshairFilterFn;
+				iq.m_pUserData = hWeapon;
+				LTVector vHit = g_pLTClient->IntersectSegment(&iq, &ii) ? ii.m_Point : iq.m_To;
+				if(nSide)
+					m_vLeftCrosshairPos = vHit;
+				else
+					m_vCrosshairPos = vHit;
+			}
+			m_bLeftCrosshairHit = bLeftHand;
+		}
+
+		if(pWeapon->GetMuzzleSide())
+		{
+			m_vMuzzlePos = m_vDualShotPos[1];
+			m_rMuzzleRot = m_rDualShotRot[1] * GunAngleRotation(m_fMuzzleFit[3], m_fMuzzleFit[4], m_fMuzzleFit[5]);
+			if(pFlash)
+				pFlash->PlaceLight(m_vMuzzlePos);
+		}
+	}
+#endif
 
 	// VRGunMode 0: a normal world object, scaled up. The engine lights a scaled-up model badly
 	// (black unless turned to the light) and it looks stretched, so by default the weapon stays
@@ -2733,11 +2875,11 @@ void VRMgr::PlaceLeftArm(HOBJECT hWeapon, WEAPON *pWeapon, int nState)
 		m_nArmForced = -1;
 		m_fArmBlend = 0.0f;
 		const char *szRoot = "none";
-		m_hArmRoot = FindNodeHandle(hWeapon, s_szLeftArmNodes, 4, &szRoot);
+		m_hArmRoot = FindNodeHandle(hWeapon, s_szLeftArmNodes, VR_NODE_NAMES, &szRoot);
 		int nHand = 0;
 		for(int h = 0; h < 4; h++)
 		{
-			m_hArmHand[h] = FindNodeHandle(hWeapon, s_pszLeftHandNodes[h], 4, LTNULL);
+			m_hArmHand[h] = FindNodeHandle(hWeapon, s_pszLeftHandNodes[h], VR_NODE_NAMES, LTNULL);
 			nHand += m_hArmHand[h] != INVALID_MODEL_NODE;
 		}
 		m_hArmRef = INVALID_MODEL_NODE;
@@ -2888,7 +3030,7 @@ void VRMgr::PlaceLeftArm(HOBJECT hWeapon, WEAPON *pWeapon, int nState)
 		LTVector vRight[4];
 		m_bArmMatch = m_bLeftMatch && bHand[1] && bHand[2] && bHand[3] &&
 			GetHandVectors(vHand[0], vHand[1], vHand[2], vHand[3], left) &&
-			FindModelNode(hWeapon, s_szWristNodes, 4, vRight[0]) && FindModelNode(hWeapon, s_szKnuckleNodes, 4, vRight[1]) &&
+			FindModelNode(hWeapon, s_szWristNodes, VR_NODE_NAMES, vRight[0]) && FindModelNode(hWeapon, s_szKnuckleNodes, VR_NODE_NAMES, vRight[1]) &&
 			FindModelNode(hWeapon, s_szPointerNodes, 4, vRight[2]) && FindModelNode(hWeapon, s_szPinkyNodes, 4, vRight[3]) &&
 			GetHandVectors(vRight[0], vRight[1], vRight[2], vRight[3], right);
 		if(m_bArmMatch)

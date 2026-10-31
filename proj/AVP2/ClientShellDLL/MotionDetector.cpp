@@ -565,20 +565,30 @@ void CMotionDetector::DisplayMDRange	(LTBOOL bActive, DFLOAT fTotAnimTime, uint3
 	}
 
 
+	int nLargeX = 75, nLargeY = 90, nSmallX = 106, nSmallY = 90;
+#ifdef AVP2_PRIMAL_HUNT
+	DIntPt ptLarge = g_pLayoutMgr->GetMDRangeOffset();
+	DIntPt ptSmall = g_pLayoutMgr->GetMDRangeSmallOffset();
+	nLargeX = ptLarge.x;
+	nLargeY = ptLarge.y;
+	nSmallX = ptSmall.x;
+	nSmallY = ptSmall.y;
+#endif
+
 	//draw large text to the screen
 	m_pLargeNums->Draw(	hScreen,
 							aBigNums,
 							&lfDDLg, 
-							m_ptGridDest.x+75, 
-							m_ptGridDest.y+90, 
+							m_ptGridDest.x+nLargeX, 
+							m_ptGridDest.y+nLargeY, 
 							LTNULL);
 
 	//draw small text to the screen
 	m_pSmallNums->Draw(	hScreen,
 							aLilNums,
 							&lfDDSm, 
-							m_ptGridDest.x+106, 
-							m_ptGridDest.y+90, 
+							m_ptGridDest.x+nSmallX, 
+							m_ptGridDest.y+nSmallY, 
 							LTNULL);
 }
 
@@ -687,8 +697,13 @@ DRect CMotionDetector::GetMDAnimDestRect (LTBOOL bEMPEffect)
 void CMotionDetector::OnObjectMove(HOBJECT hObj, LTBOOL bTeleport, DVector vPos)
 {
 	//verify we are based on the marine and not moving due to teleport
+#ifdef AVP2_PRIMAL_HUNT
+	if(m_pPlayerStats->GetHUDType() != 1 && m_pPlayerStats->GetHUDType() != 7)
+		return;
+#else
 	if(m_pPlayerStats->GetHUDType() != 1)
 		return;
+#endif
 
 	LTBOOL bKeyframed = LTFALSE;
 

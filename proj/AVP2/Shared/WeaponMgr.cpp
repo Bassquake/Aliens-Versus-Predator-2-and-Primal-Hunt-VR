@@ -61,6 +61,10 @@ const char* const WMGR_WEAPON_AIMING_PITCH_SET	= "AimingPitchSet";
 const char* const WMGR_WEAPON_MELEE				= "Melee";
 const char* const WMGR_WEAPON_SAVE				= "Save";
 const char* const WMGR_WEAPON_CACHE_MP			= "CacheInMP";
+#ifdef AVP2_PRIMAL_HUNT
+const char* const WMGR_WEAPON_MULTISELECT		= "MultiSelect";
+const char* const WMGR_WEAPON_MULTISELECTNEXT	= "MultiSelectNext";
+#endif
 
 const char* const WMGR_BARREL_TAG				= "Barrel";
 const char* const WMGR_BARREL_NAMEID			= "NameId";
@@ -78,6 +82,11 @@ const char* const WMGR_BARREL_PVMUZZLEFXNAME	= "PVMuzzleFXName";
 const char* const WMGR_BARREL_HHBREACH			= "HHBreachOffset";
 const char* const WMGR_BARREL_PVBREACH			= "PVBreachOffset";
 const char* const WMGR_BARREL_HHMUZZLEFXNAME	= "HHMuzzleFXName";
+#ifdef AVP2_PRIMAL_HUNT
+const char* const WMGR_BARREL_DUALMUZZLE		= "DualMuzzle";
+const char* const WMGR_BARREL_DUALMUZZLEPOS		= "DualMuzzlePos";
+const char* const WMGR_BARREL_DUALPVMUZZLEFXNAME = "DualPVMuzzleFXName";
+#endif
 const char* const WMGR_BARREL_FIRESND			= "FireSnd";
 const char* const WMGR_BARREL_ALTFIRESND		= "AltFireSnd";
 const char* const WMGR_BARREL_DRYFIRESND		= "DryFireSnd";
@@ -877,6 +886,10 @@ WEAPON::WEAPON()
 	bLoopAltFireAnim	= LTFALSE;
 	bSave				= LTFALSE;
 	bMPCache			= LTFALSE;
+#ifdef AVP2_PRIMAL_HUNT
+	bMultiSelect		= LTFALSE;
+	szMultiSelectNext[0] = '\0';
+#endif
 
 	vPos.Init();
 	vHHScale.Init();
@@ -964,6 +977,14 @@ DBOOL WEAPON::Init(CHierarchicalButeMgr & buteMgr, const char* aTagName)
 	bLoopAltFireAnim		= (LTBOOL) buteMgr.GetInt(aTagName, WMGR_WEAPON_LOOP_ALTFIRE_ANIM);
 	bSave					= (LTBOOL) buteMgr.GetInt(aTagName, WMGR_WEAPON_SAVE);
 	bMPCache				= (LTBOOL) buteMgr.GetInt(aTagName, WMGR_WEAPON_CACHE_MP);
+#ifdef AVP2_PRIMAL_HUNT
+	bMultiSelect			= (LTBOOL) buteMgr.GetInt(aTagName, WMGR_WEAPON_MULTISELECT);
+	CString strMultiSelect	= buteMgr.GetString(aTagName, WMGR_WEAPON_MULTISELECTNEXT);
+	if (!strMultiSelect.IsEmpty())
+	{
+		strncpy(szMultiSelectNext, strMultiSelect, ARRAY_LEN(szMultiSelectNext));
+	}
+#endif
 
 	vPos					= buteMgr.GetVector(aTagName, WMGR_WEAPON_POS);
 	vHHScale				= buteMgr.GetVector(aTagName, WMGR_WEAPON_HHSCALE);
@@ -1354,6 +1375,11 @@ BARREL::BARREL()
 
 	pPVMuzzleFX			= LTNULL;
 	pHHMuzzleFX			= LTNULL;
+#ifdef AVP2_PRIMAL_HUNT
+	bDualMuzzle			= LTFALSE;
+	vDualMuzzlePos.Init();
+	pDualPVMuzzleFX		= LTNULL;
+#endif
 	eBarrelType		= BT_INVALID;
 }
 
@@ -1478,6 +1504,17 @@ DBOOL BARREL::Init(CHierarchicalButeMgr & buteMgr, const char* aTagName)
 	{
 		pPVMuzzleFX = g_pFXButeMgr->GetMuzzleFX(str.GetBuffer(0));
 	}
+
+#ifdef AVP2_PRIMAL_HUNT
+	bDualMuzzle		= (LTBOOL) buteMgr.GetInt(aTagName, WMGR_BARREL_DUALMUZZLE);
+	vDualMuzzlePos	= buteMgr.GetVector(aTagName, WMGR_BARREL_DUALMUZZLEPOS);
+
+	str = buteMgr.GetString(aTagName, WMGR_BARREL_DUALPVMUZZLEFXNAME);
+	if (!str.IsEmpty())
+	{
+		pDualPVMuzzleFX = g_pFXButeMgr->GetMuzzleFX(str.GetBuffer(0));
+	}
+#endif
 	return LTTRUE;
 }
 
@@ -1542,6 +1579,13 @@ void BARREL::Cache(CWeaponMgr* pWeaponMgr)
 	{
 		pHHMuzzleFX->Cache(g_pFXButeMgr);
 	}
+
+#ifdef AVP2_PRIMAL_HUNT
+	if (pDualPVMuzzleFX)
+	{
+		pDualPVMuzzleFX->Cache(g_pFXButeMgr);
+	}
+#endif
 
 #endif
 }

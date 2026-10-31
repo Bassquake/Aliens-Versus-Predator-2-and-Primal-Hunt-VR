@@ -238,6 +238,9 @@ extern CGameClientShell* g_pGameClientShell;
 #define FXBMGR_TRACERFX_TEXTURE			"Texture"
 #define FXBMGR_TRACERFX_FREQUENCY		"Frequency"
 #define FXBMGR_TRACERFX_VELOCITY		"Velocity"
+#ifdef AVP2_PRIMAL_HUNT
+#define FXBMGR_TRACERFX_SINGLESEGMENT	"SingleSegment"
+#endif
 #define FXBMGR_TRACERFX_WIDTH			"Width"
 #define FXBMGR_TRACERFX_INITIALALPHA	"InitialAlpha"
 #define FXBMGR_TRACERFX_FINALALPHA		"FinalAlpha"
@@ -4011,6 +4014,9 @@ TRACERFX::TRACERFX()
 	szName[0]		= '\0';
 	szTexture[0]	= '\0';
 
+#ifdef AVP2_PRIMAL_HUNT
+	bSingleSegment	= LTFALSE;
+#endif
 	nFrequency		= 1;
 	fVelocity		= 0.0f;
 	fWidth			= 0.0f;
@@ -4053,6 +4059,11 @@ LTBOOL TRACERFX::Init(CButeMgr & buteMgr, char* aTagName)
 	
 	vTemp = ToCAVector(vColor);
 	vColor			= buteMgr.GetVector(aTagName, FXBMGR_TRACERFX_COLOR, vTemp);
+
+#ifdef AVP2_PRIMAL_HUNT
+	// Its HeadVelocity bute isn't read: the speeds come from the distance (see CTracerFX)
+	bSingleSegment	= (LTBOOL) buteMgr.GetInt(aTagName, FXBMGR_TRACERFX_SINGLESEGMENT, 0);
+#endif
 
     return LTTRUE;
 }
@@ -4903,6 +4914,20 @@ CSpecialFX* CFXButeMgr::CreateScaleFX(CScaleFX* pScaleFX, LTVector vPos,
 
 	scale.Filename			= pScaleFX->szFile;
 	scale.Skins[0]			= pScaleFX->szSkin;
+#ifdef AVP2_PRIMAL_HUNT
+	for (int nSkin = 0; nSkin < MAX_MODEL_TEXTURES-1; nSkin++)
+	{
+		scale.Skins[nSkin + 1] = pScaleFX->szExtraSkins[nSkin];
+	}
+
+	if (pScaleFX->fRotationY > 0.0f)
+	{
+		LTVector vYAxis(0.0f, 1.0f, 0.0f);
+		g_pLTClient->RotateAroundAxis(&(scale.rRot), &vYAxis, pScaleFX->fRotationY);
+	}
+
+	scale.bAdditiveAlpha	= pScaleFX->bAdditiveAlpha;
+#endif
 	scale.vVel				= pScaleFX->vVel;
 	scale.vInitialScale		= pScaleFX->vInitialScale;
 	scale.vFinalScale		= pScaleFX->vFinalScale;

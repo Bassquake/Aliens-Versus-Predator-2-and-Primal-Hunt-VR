@@ -52,6 +52,9 @@ struct BSCREATESTRUCT : public SFXCREATESTRUCT
     LTBOOL			bLoop;
     LTBOOL			bAdditive;
     LTBOOL			bMultiply;
+#ifdef AVP2_PRIMAL_HUNT
+    LTBOOL			bAdditiveAlpha;
+#endif
     LTBOOL			bRotate;
     LTBOOL			bRotateLeft;
     LTBOOL			bFaceCamera;
@@ -75,6 +78,9 @@ inline BSCREATESTRUCT::BSCREATESTRUCT()
     bLoop           = LTFALSE;
     bAdditive       = LTFALSE;
     bMultiply       = LTFALSE;
+#ifdef AVP2_PRIMAL_HUNT
+    bAdditiveAlpha  = LTFALSE;
+#endif
     bRotate         = LTFALSE;
     bFaceCamera     = LTFALSE;
 	nRotationAxis	= 0;
@@ -120,6 +126,9 @@ public :
 		m_nRotDir		= 1;
         m_bLoop         = LTFALSE;
         m_bAdditive     = LTFALSE;
+#ifdef AVP2_PRIMAL_HUNT
+        m_bAdditiveAlpha = LTFALSE;
+#endif
         m_bMultiply     = LTFALSE;
         m_bRotate       = LTFALSE;
         m_bFaceCamera   = LTFALSE;
@@ -172,6 +181,9 @@ protected :
     LTBOOL			m_bUseUserColors;
     LTBOOL			m_bLoop;
     LTBOOL			m_bAdditive;
+#ifdef AVP2_PRIMAL_HUNT
+    LTBOOL			m_bAdditiveAlpha;
+#endif
     LTBOOL			m_bMultiply;
     LTBOOL			m_bRotate;
     LTBOOL			m_bFaceCamera;

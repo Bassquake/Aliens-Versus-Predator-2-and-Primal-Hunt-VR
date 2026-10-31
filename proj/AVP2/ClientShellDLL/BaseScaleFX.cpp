@@ -60,6 +60,9 @@ LTBOOL CBaseScaleFX::Init(SFXCREATESTRUCT* psfxCreateStruct)
 	}
 	m_bLoop				= pBaseScale->bLoop;
 	m_bAdditive			= pBaseScale->bAdditive;
+#ifdef AVP2_PRIMAL_HUNT
+	m_bAdditiveAlpha	= pBaseScale->bAdditiveAlpha;
+#endif
 	m_bMultiply			= pBaseScale->bMultiply;
 	m_nType				= pBaseScale->nType;
 	m_bRotate			= pBaseScale->bRotate;
@@ -155,6 +158,12 @@ LTBOOL CBaseScaleFX::CreateObject(ILTClient *pClientDE)
 		dwFlags |= FLAG2_MULTIPLY;
         bFog = LTFALSE;
 	}
+#ifdef AVP2_PRIMAL_HUNT
+	if (m_bAdditiveAlpha)
+	{
+		dwFlags |= FLAG2_ADDITIVE_ALPHA;
+	}
+#endif
     g_pLTClient->Common()->SetObjectFlags(m_hObject, OFT_Flags2, dwFlags);
 
 

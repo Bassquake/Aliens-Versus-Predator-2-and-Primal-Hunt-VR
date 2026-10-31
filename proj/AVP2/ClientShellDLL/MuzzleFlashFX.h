@@ -29,6 +29,9 @@ struct MUZZLEFLASHCREATESTRUCT : public SFXCREATESTRUCT
 	uint8		nFlashSocket;   // Used to get the name of the flash socket from barrel data's FlashSockets array.
     LTVector     vPos;           // Initial pos
     LTRotation   rRot;           // Initial rotation
+#ifdef AVP2_PRIMAL_HUNT
+    LTBOOL       bDualMuzzle;    // Use the fx of the barrel's second muzzle
+#endif
     LTBOOL       bPlayerView;    // Is this fx tied to the client-side player view
 };
 
@@ -40,6 +43,9 @@ inline MUZZLEFLASHCREATESTRUCT::MUZZLEFLASHCREATESTRUCT()
     hParent     = LTNULL;
 	pBarrel		= LTNULL;
     bPlayerView = LTFALSE;
+#ifdef AVP2_PRIMAL_HUNT
+    bDualMuzzle = LTFALSE;
+#endif
 }
 
 

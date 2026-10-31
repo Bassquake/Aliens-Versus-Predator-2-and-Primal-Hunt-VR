@@ -464,6 +464,9 @@ struct TRACERFX
 	float		fInitialAlpha;
 	float		fFinalAlpha;
     LTVector    vColor;
+#ifdef AVP2_PRIMAL_HUNT
+	LTBOOL		bSingleSegment;		// One quad that flies to the target instead of a trail
+#endif
 };
 
 typedef CTList<TRACERFX*> TracerFXList;

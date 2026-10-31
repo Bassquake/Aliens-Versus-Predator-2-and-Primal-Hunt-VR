@@ -179,6 +179,11 @@ class VRMgr
 		LTBOOL		CanAddMarkers() const				{ return m_pApi && m_pApi->version >= 11; }
 		void		AddMarker(const char *szImage, HSURFACE hImage, int nEye, LTFLOAT fX, LTFLOAT fY,
 							  LTFLOAT fHalfW, LTFLOAT fHalfH, LTFLOAT fAngle, LTFLOAT fAlpha);
+		void		AddMarkerImage(const uint32 *pPixels, uint32 nWidth, uint32 nHeight, uint32 nId, int nEye, LTFLOAT fX, LTFLOAT fY,
+								   LTFLOAT fHalfW, LTFLOAT fHalfH, LTFLOAT fAngle, LTFLOAT fAlpha);
+#ifdef AVP2_PRIMAL_HUNT
+		void		AddLeftCrosshair();
+#endif
 
 		// Each frame (CInterfaceMgr): the hacking device points at something it can hack, where its
 		// ray hit it (world) and the surface's normal there. Its plug goes there while it hacks.
@@ -284,6 +289,11 @@ class VRMgr
 		LTFLOAT			m_fMuzzleFit[6];		// [Muzzle] <weapon> = forward up right [pitch yaw roll] (cm, degrees, the
 												// gun's frame): moves where shots, the flash and the flame start from, and
 												// turns the flash (its sprites and particles; the shots keep to the aim)
+#ifdef AVP2_PRIMAL_HUNT
+		LTBOOL			m_bDualShots;			// a dual muzzle weapon: shots use these, by the muzzle's side
+		LTVector		m_vDualShotPos[2];
+		LTRotation		m_rDualShotRot[2];
+#endif
 		LTRotation		m_rMuzzleRot;			// the flash's turn in the world (the model's, then the [Muzzle] angle)
 		LTBOOL			m_bAdjusting;			// adjust mode is on
 		LTBOOL			m_bAdjustLive;			// avp2xr.ini AdjustHandsLive: the Adjust button turns it on
@@ -297,6 +307,10 @@ class VRMgr
 		unsigned int	m_nAdjustRaw;			// AVP2XR_BTN_* held last frame, before adjust mode takes them
 		LTBOOL			m_bCrosshairHit;		// m_vCrosshairPos is set for this frame
 		LTVector		m_vCrosshairPos;		// where the aim hits, in the world
+#ifdef AVP2_PRIMAL_HUNT
+		LTBOOL			m_bLeftCrosshairHit;	// m_vLeftCrosshairPos is set for this frame
+		LTVector		m_vLeftCrosshairPos;	// where the left dual pistol's aim hits
+#endif
 		LTBOOL			m_bCrosshairEye[2];		// the crosshair is in front of that eye
 		int				m_nCrosshairX[2];		// its centre on the screen, per eye
 		int				m_nCrosshairY[2];

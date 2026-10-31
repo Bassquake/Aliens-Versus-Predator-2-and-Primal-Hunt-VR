@@ -165,6 +165,12 @@ LTBOOL CMuzzleFlashFX::ResetFX()
 	if (m_cs.bPlayerView)
 	{
 		pMuzzleFX = m_cs.pBarrel->pPVMuzzleFX;
+#ifdef AVP2_PRIMAL_HUNT
+		if (m_cs.bDualMuzzle)
+		{
+			pMuzzleFX = m_cs.pBarrel->pDualPVMuzzleFX;
+		}
+#endif
 	}
 	else
 	{

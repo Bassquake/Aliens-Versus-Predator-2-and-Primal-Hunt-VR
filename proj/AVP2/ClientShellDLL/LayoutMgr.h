@@ -146,6 +146,10 @@ public:
 	void		GetMDSmallFontName(char *pBuf, int nBufLen);
 	DDWORD		GetNumMDBlipImages();
 	DDWORD		GetNumMDGridImages();
+#ifdef AVP2_PRIMAL_HUNT
+	DIntPt		GetMDRangeOffset();
+	DIntPt		GetMDRangeSmallOffset();
+#endif
 	DIntPt		GetMDGridOffset();
 	DIntPt		GetMDBaseOffset();
 	DFLOAT		GetMDGridTranslucency();
