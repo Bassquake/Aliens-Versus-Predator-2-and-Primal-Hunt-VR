@@ -10,17 +10,29 @@ Short video of v0.2 in action on a Quest 2 here on [YouTube](https://youtu.be/4k
 ![v0.2 Released](https://github.com/Bassquake/Aliens-Versus-Predator-2-VR/blob/main/captures/thumb_AvP2VR_v0-2.jpg)
 
 > [!CAUTION]
-> You need the original installation game files and updated to v1.0.9.6. The 2 disc CD version can be found on eBay or maybe archive.org. This build is in playable state. Some weapon models have missing faces as they aren't designed to be looked at from different angles! I'm not primarily a programmer, this was done with a lot of help from various AI like Claude, Copilot and Gemini.
+> You need the original installation game files and updated to v1.0.9.6. If you're installing the Primal Hunt expansion pack the original Aliens Versus Predator 2 game needs to be installed too. The 2 disc CD version can be found on eBay or maybe archive.org. This build is in playable state. Some weapon models have missing faces as they aren't designed to be looked at from different angles! I'm not primarily a programmer, this was done with a lot of help from various AI like Claude, Copilot and Gemini.
 
-## Installation
+## Installation of standard Aliens Versus Predator 2
 - Install the Aliens Versus Predator 2 game into its default folder location: **C:\Program Files (x86)\Fox\Aliens vs. Predator 2**
 - Update it to v1.0.9.6 if it isn't already. Update can be [found here](https://www.gamefront.com/games/aliens-vs-predator-2/file/avp2-update-1-0-9-6).
 - Download my **avp2vr-0.5.zip** in [Releases](https://github.com/Bassquake/Aliens-Versus-Predator-2-VR/releases) and extract to a folder somewhere on your drive.
 - Go to the extracted folder and right click and **Run As Administrator** on **Install_avp2vr.bat**. This will copy the necessary files into the game folder, press any key to close the window.
 
+## Installation of Primal Hunt
+The Primal Hunt expansion is also supported, with its own installer and launcher. It uses files from the main game, so install both.
+
+- Install Aliens Versus Predator 2 as described above, then install Primal Hunt into its default folder location: **C:\Program Files (x86)\Fox\Aliens versus Predator 2 - Primal Hunt**
+- Start Primal Hunt from its own launcher, press Play once, then quit. This creates the list of game files the VR launcher needs.
+- Go to the extracted folder and right click and **Run As Administrator** on **Install_avp2vr_PrimalHunt.bat**. This will copy the necessary files into the Primal Hunt folder, press any key to close the window.
+- Start the game with **AVP2VR_PrimalHunt_(SteamVR_runtime).bat** in the Primal Hunt folder, not with PrimalHunt.exe. To add it to your Steam Library, follow the steps above and set the Target Path to this file.
+
+Each game has its own **avp2xr.ini**, so customise the one in the Primal Hunt folder for Primal Hunt. With the dual pistols, each trigger fires its own pistol.
+
+Note: Some of the first-person weapon models new to Primal Hunt aren't set up for VR yet, so may not look right. To remove the mod, right click and **Run As Administrator** on **Uninstall_avp2vr_PrimalHunt.bat** in the Primal Hunt folder.
+
 ![Install Files](https://github.com/Bassquake/Aliens-Versus-Predator-2-VR/blob/main/captures/avp2-install-files-results.jpg)
 
-- Enhance the Steam Library by adding cover art etc:
+- Enhance the Steam Library by adding cover art etc. Do the same for Primal Hunt (Steam images zip for both is in Releases):
 
 Add the original **AVP2.exe** (in the game folder) to the Steam Library as a non-Steam game:
 
@@ -45,18 +57,6 @@ Choose Customisation and change images. The image files are named the same as th
 - Finally, on your headset, run Steam Link and navigate to the game in your library. Simply click Play! (Virtual Desktop is untested). Your desktop will mirror the view.
 
 Note: You can also double click **AVP2VR_(SteamVR_runtime).bat** on the PC and it'll auto load in headset if Steam Link is already running.
-
-## Primal Hunt
-The Primal Hunt expansion is also supported, with its own installer and launcher. It uses files from the main game, so install both.
-
-- Install Aliens Versus Predator 2 as described above, then install Primal Hunt into its default folder location: **C:\Program Files (x86)\Fox\Aliens versus Predator 2 - Primal Hunt**
-- Start Primal Hunt from its own launcher, press Play once, then quit. This creates the list of game files the VR launcher needs.
-- Go to the extracted folder and right click and **Run As Administrator** on **Install_avp2vr_PrimalHunt.bat**. This will copy the necessary files into the Primal Hunt folder, press any key to close the window.
-- Start the game with **AVP2VR_PrimalHunt_(SteamVR_runtime).bat** in the Primal Hunt folder, not with PrimalHunt.exe. To add it to your Steam Library, follow the steps above and set the Target Path to this file.
-
-Each game has its own **avp2xr.ini**, so customise the one in the Primal Hunt folder for Primal Hunt. With the dual pistols, each trigger fires its own pistol.
-
-Note: Some of the first-person weapon models new to Primal Hunt aren't set up for VR yet, so may not look right. To remove the mod, right click and **Run As Administrator** on **Uninstall_avp2vr_PrimalHunt.bat** in the Primal Hunt folder.
 
 ## Controls
 I've tried to map as many of the functions to the controllers buttons as there are a lot more than Aliens Versus Predator had! They can be customised by editing the **avp2xr.ini** located in **C:\Program Files (x86)\Fox\Aliens vs. Predator 2**.
