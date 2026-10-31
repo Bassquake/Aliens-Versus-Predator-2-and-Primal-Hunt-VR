@@ -172,6 +172,21 @@ static LTBOOL WeaponHasCrosshair(const WEAPON *pWeapon)
 	return LTTRUE;
 }
 
+// Weapons (Weapons.txt names) that are part of the head, not held: the Chestburster's jaws and the
+// Alien's inner jaw. They stay where the flat-screen game has them in the view, and bite where the
+// head looks.
+static const char *s_szHeadWeapons[] = { "Bite", "Head_Bite" };
+
+static LTBOOL WeaponOnHead(const WEAPON *pWeapon)
+{
+	if(!pWeapon)
+		return LTFALSE;
+	for(int i = 0; i < sizeof(s_szHeadWeapons) / sizeof(s_szHeadWeapons[0]); i++)
+		if(!stricmp(pWeapon->szName, s_szHeadWeapons[i]))
+			return LTTRUE;
+	return LTFALSE;
+}
+
 // The aim ray for the crosshair passes through the player and the weapon model
 extern LTBOOL BodyPropListFilterFn(HOBJECT hTest, void *pUserData);
 static LTBOOL CrosshairFilterFn(HOBJECT hObj, void *pUserData)
@@ -555,6 +570,7 @@ VRMgr::VRMgr()
 	m_bLastFramePlayerView = LTFALSE;
 	m_rHeadWorld.Init();
 	m_vHeadPos.Init();
+	m_rHeadNow.Init();
 	m_rShotRot.Init();
 	m_hMuzzleNode = INVALID_MODEL_NODE;
 	m_hFlashSocket = INVALID_MODEL_SOCKET;
@@ -2008,8 +2024,16 @@ void VRMgr::GetEyeCamera(int nEye, HCAMERA hCamera, const LTVector &vPos, const 
 	const float *ref = (hCamera == m_hPlayerCamera) ? m_fHeadRef : s_fNoRef;
 	LTFLOAT fScale = g_vtVRWorldScale.GetFloat();
 	vEyePos = vPos + Rotate(rYaw, FromXrPos(view.position, ref) * fScale);
-	if(hCamera == m_hPlayerCamera)
-		m_vHeadPos = (nEye == 0) ? vEyePos : (m_vHeadPos + vEyePos) * 0.5f;
+
+	// The head, from the first eye on: PlaceWeapon runs before the second
+	if(nEye == 0 && hCamera == m_hPlayerCamera)
+	{
+		float fMid[3];
+		for(int i = 0; i < 3; i++)
+			fMid[i] = (m_Views[0].position[i] + m_Views[1].position[i]) * 0.5f;
+		m_vHeadPos = vPos + Rotate(rYaw, FromXrPos(fMid, ref) * fScale);
+		m_rHeadNow = rEyeRot;
+	}
 
 	// The aiming controller in the world, for drawing the weapon there
 	if(nEye == 0 && hCamera == m_hPlayerCamera && m_bInput && m_Input.aimValid)
@@ -2427,6 +2451,16 @@ void VRMgr::PlaceWeapon()
 	vOffset -= m_vGunOffsetCur;
 	LTVector vOrigin = vHand - Rotate(m_rAimRot, vOffset);
 
+	// A weapon on the head goes at the game's own place in the view, from the head instead of the
+	// camera (the [Gun] fit moves it from there), and aims where the head looks
+	LTBOOL bOnHead = WeaponOnHead(pWeapon->GetWeapon());
+	if(bOnHead)
+	{
+		m_rShotRot = m_rHeadNow;
+		m_rAimRot = m_rShotRot * m_rGunAngleCur;
+		vOrigin = m_vHeadPos + Rotate(m_rAimRot, m_vWeaponPos * fScale + m_vGunOffsetCur);
+	}
+
 	// Log the grip whenever the weapon changes, for tuning
 	static WEAPON *s_pLastWeapon = LTNULL;
 	if(pWeapon->GetWeapon() != s_pLastWeapon)
@@ -2494,6 +2528,10 @@ void VRMgr::PlaceWeapon()
 	// right one (the model is mirrored, see tools/mirrorhack.py), so from the controller itself
 	if(m_bHackModel)
 		m_vShotPos = m_vAimPos;
+
+	// A weapon on the head fires from it, as the flat-screen game does from the camera
+	if(bOnHead)
+		m_vShotPos = m_vHeadPos;
 
 	// Where the shots go, for the crosshair
 	m_bCrosshairHit = LTFALSE;

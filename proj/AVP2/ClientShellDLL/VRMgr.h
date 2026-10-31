@@ -332,6 +332,7 @@ class VRMgr
 		LTBOOL			m_bLastFramePlayerView;
 		LTRotation		m_rHeadWorld;			// head rotation in the world in the last stereo frame
 		LTVector		m_vHeadPos;				// between the player view's eyes in the world, this frame
+		LTRotation		m_rHeadNow;				// head rotation in the world, this frame
 		LTVector		m_vHeadWorld;			// ...in the last stereo frame
 		LTFLOAT			m_fUseAngle;			// avp2xr.ini UseAngle
 		LTVector		m_vAimPos;				// aiming controller pose in the world
