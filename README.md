@@ -18,7 +18,7 @@ Short video of v0.2 in action on a Quest 2 here on [YouTube](https://youtu.be/4k
 - Download my **avp2vr-0.5.zip** in [Releases](https://github.com/Bassquake/Aliens-Versus-Predator-2-VR/releases) and extract to a folder somewhere on your drive.
 - Go to the extracted folder and right click and **Run As Administrator** on **Install_avp2vr.bat**. This will copy the necessary files into the game folder, press any key to close the window.
 
-## Installation of Primal Hunt
+## Installation of Primal Hunt expansion pack
 The Primal Hunt expansion is also supported, with its own installer and launcher. It uses files from the main game, so install both.
 
 - Install Aliens Versus Predator 2 as described above, then install Primal Hunt into its default folder location: **C:\Program Files (x86)\Fox\Aliens versus Predator 2 - Primal Hunt**
