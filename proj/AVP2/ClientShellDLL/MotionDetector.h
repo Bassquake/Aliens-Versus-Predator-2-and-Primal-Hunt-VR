@@ -72,6 +72,9 @@ private:
 	MDDispBlipList	m_BlipDispList;	//array of motion detector blips for display
 
 	//private utility functions
+	LTBOOL		IsCorporate();
+	uint32		MaxRange();
+	LTFLOAT		RangeScale();
 	LTBOOL		TestObjectForType	(HOBJECT hObj, LTBOOL bKeyFramed);
 	LTBOOL		TestObjectForLocation(HOBJECT hObj, DVector vPos);//, DFLOAT *pRval, DDWORD *pRange);
 	void		AddObjectToList		(HOBJECT hObj, LTVector vLoc);//DFLOAT fAngle, DDWORD nRange, 

@@ -30,6 +30,38 @@ const uint32 MAX_MD_RANGE			= 1920;
 const uint32 MAX_MD_RANGE_SQ		= MAX_MD_RANGE * MAX_MD_RANGE;
 const uint32 MAX_MD_TRACKER_RANGE	= MAX_MD_RANGE;
 
+#ifdef AVP2_PRIMAL_HUNT
+// The Corporate tracker (HUD type 7) is a full circle, not the Marine's half, and sees half as far...
+const uint32 CORP_MD_RANGE			= 640;
+const uint32 CORP_MD_SIZE			= 150;	// width and height of the circle
+const uint32 CORP_MD_RADIUS			= 75;
+const LTFLOAT CORP_MD_BLIP_SCALE	= 67.0f;
+const LTFLOAT CORP_MD_BLIP_MIN		= 8.0f;
+#endif
+
+LTBOOL CMotionDetector::IsCorporate()
+{
+#ifdef AVP2_PRIMAL_HUNT
+	return m_pPlayerStats && m_pPlayerStats->GetHUDType() == 7;
+#else
+	return LTFALSE;
+#endif
+}
+
+uint32 CMotionDetector::MaxRange()
+{
+#ifdef AVP2_PRIMAL_HUNT
+	if(IsCorporate())
+		return CORP_MD_RANGE;
+#endif
+	return MAX_MD_RANGE;
+}
+
+LTFLOAT CMotionDetector::RangeScale()
+{
+	return IsCorporate() ? 2000.0f : 3000.0f;
+}
+
 // -----------------------------------------------/
 //
 // void CMotionDetector::CMotionDetector Implimentation
@@ -416,13 +448,13 @@ void CMotionDetector::DrawMDFrame	(LTBOOL bEMPEffect)
 				//play blip sound
 				m_bFirstUpdate = LTFALSE;
 
-				if(m_BlipDispList.nMinRange != MAX_MD_RANGE)
+				if(m_BlipDispList.nMinRange != MaxRange())
 					g_pClientSoundMgr->PlaySoundLocal(
 								"\\Sounds\\Interface\\md_tracking.wav",
 								SOUNDPRIORITY_MISC_LOW,
 								PLAYSOUND_CTRL_PITCH,
-								(uint8)(30.0f + (1.0f - (LTFLOAT)m_BlipDispList.nMinRange / MAX_MD_RANGE) * 70.0f),
-								1.0f + (1.0f - (LTFLOAT)m_BlipDispList.nMinRange / MAX_MD_RANGE) * 0.05f);
+								(uint8)(30.0f + (1.0f - (LTFLOAT)m_BlipDispList.nMinRange / MaxRange()) * 70.0f),
+								1.0f + (1.0f - (LTFLOAT)m_BlipDispList.nMinRange / MaxRange()) * 0.05f);
 			}
 
 			//dispaly the tracker blip or arrow
@@ -508,15 +540,15 @@ void CMotionDetector::DisplayMDRange	(LTBOOL bActive, DFLOAT fTotAnimTime, uint3
 	{
 		if(bRunning)
 		{
-			if(nRange == MAX_MD_RANGE)
+			if(nRange == MaxRange())
 			{
 				//continuation of sequence
-				nCount = (uint32) (fTimeDelta / fTotAnimTime * 3000);
+				nCount = (uint32) (fTimeDelta / fTotAnimTime * RangeScale());
 
 			}
 			else
 			{
-				nCount = (uint32) ( (DFLOAT)nRange / MAX_MD_RANGE * 3000);
+				nCount = (uint32) ( (DFLOAT)nRange / MaxRange() * RangeScale());
 			}
 
 			uint32 nBigNum = nCount / 100;
@@ -539,9 +571,9 @@ void CMotionDetector::DisplayMDRange	(LTBOOL bActive, DFLOAT fTotAnimTime, uint3
 		//set flag to false
 		bRunning = LTFALSE;
 
-		if(nRange != MAX_MD_RANGE)
+		if(nRange != MaxRange())
 		{
-			nCount = (uint32) ( (DFLOAT)nRange / MAX_MD_RANGE * 3000);
+			nCount = (uint32) ( (DFLOAT)nRange / MaxRange() * RangeScale());
 
 			uint32 nBigNum = nCount / 100;
 			uint32 nLilNum = nCount % 100;
@@ -573,6 +605,14 @@ void CMotionDetector::DisplayMDRange	(LTBOOL bActive, DFLOAT fTotAnimTime, uint3
 	nLargeY = ptLarge.y;
 	nSmallX = ptSmall.x;
 	nSmallY = ptSmall.y;
+#endif
+
+#ifdef AVP2_PRIMAL_HUNT
+	if(IsCorporate())
+	{
+		m_pSmallNums->Draw(hScreen, aBigNums, &lfDDLg, m_ptGridDest.x+nLargeX, m_ptGridDest.y+nLargeY, LTNULL);
+		return;
+	}
 #endif
 
 	//draw large text to the screen
@@ -643,13 +683,20 @@ DRect CMotionDetector::GetMDAnimDestRect (LTBOOL bEMPEffect)
 		rcRval.top		= m_ptGridDest.y + nHeight;
 		rcRval.right	= rcRval.left;
 		rcRval.bottom	= rcRval.top;
+#ifdef AVP2_PRIMAL_HUNT
+		if(IsCorporate())
+		{
+			rcRval.left = rcRval.right = m_ptGridDest.x + CORP_MD_RADIUS;
+			rcRval.top = rcRval.bottom = m_ptGridDest.y + CORP_MD_RADIUS;
+		}
+#endif
 
 		//return the dest rect
 		return rcRval;
 	}
 	
 	//rect ratio
-	LTFLOAT	fRatio;
+	LTFLOAT	fRatio = 1.0f;
 
 	if(!bEMPEffect)
 	{
@@ -683,6 +730,17 @@ DRect CMotionDetector::GetMDAnimDestRect (LTBOOL bEMPEffect)
 		rcRval.right	= m_ptGridDest.x + nWidth - (int)(nHalfWidth * (1-fRatio));
 		rcRval.bottom	= m_ptGridDest.y + (int)nHeight;
 	}
+
+#ifdef AVP2_PRIMAL_HUNT
+	if(IsCorporate())
+	{
+		int nInset = (int)(CORP_MD_RADIUS * (1-fRatio));
+		rcRval.left		= m_ptGridDest.x + nInset;
+		rcRval.top		= m_ptGridDest.y + nInset;
+		rcRval.right	= m_ptGridDest.x + CORP_MD_SIZE - nInset;
+		rcRval.bottom	= m_ptGridDest.y + CORP_MD_SIZE - nInset;
+	}
+#endif
 
 	return rcRval;
 }
@@ -789,7 +847,7 @@ LTBOOL CMotionDetector::TestObjectForLocation(HOBJECT hObj, DVector vPos)//, DFL
 	uint32 nRange = (uint32)vPlayerToObj.MagSqr();
 
 	//test range
-	if( nRange > MAX_MD_RANGE_SQ )
+	if( nRange > MaxRange() * MaxRange() )
 		return LTFALSE;
 
 
@@ -807,7 +865,7 @@ LTBOOL CMotionDetector::TestObjectForLocation(HOBJECT hObj, DVector vPos)//, DFL
 //	vPlayerToObj.Norm();
 
 	//see if the object is infront of us
-	if(vForward.Dot(vPlayerToObj) > 0)
+	if(vForward.Dot(vPlayerToObj) > 0 || IsCorporate())
 		return LTTRUE;
 
 	return LTFALSE;
@@ -931,9 +989,16 @@ void CMotionDetector::BuildDisplayList()
 	memset(&m_BlipDispList, 0, sizeof(MDDispBlipList));
 
 	//re-set constants
-	m_BlipDispList.nMinRange = MAX_MD_RANGE;
+	m_BlipDispList.nMinRange = MaxRange();
 	m_BlipDispList.ptOffset.x = 94;
 	m_BlipDispList.ptOffset.y = 92;
+#ifdef AVP2_PRIMAL_HUNT
+	if(IsCorporate())
+	{
+		m_BlipDispList.ptOffset.x = CORP_MD_RADIUS;
+		m_BlipDispList.ptOffset.y = CORP_MD_RADIUS;
+	}
+#endif
 	m_bFirstUpdate = LTTRUE;
 
 	for(int i=0; i<MAX_BLIPS; i++)
@@ -990,7 +1055,7 @@ LTBOOL CMotionDetector::UpdateDispBlipList(int nIndex, LTVector vPlayerPos, LTVe
 	uint32 nRange = (uint32)vPlayerToObj.Mag();
 
 	//test range
-	if( nRange > MAX_MD_RANGE )
+	if( nRange > MaxRange() )
 		return LTFALSE;
 
 	//test forward dot
@@ -998,11 +1063,16 @@ LTBOOL CMotionDetector::UpdateDispBlipList(int nIndex, LTVector vPlayerPos, LTVe
 	vPlayerToObj.Norm();
 
 	//see if the object is infront of us
-	if(vPlayerForward.Dot(vPlayerToObj) <= 0)
+	LTBOOL bBehind = vPlayerForward.Dot(vPlayerToObj) < 0;
+	if(vPlayerForward.Dot(vPlayerToObj) <= 0 && !IsCorporate())
 		return LTFALSE;
 
 	//calculate right dot
-	LTFLOAT fMag	= ((LTFLOAT)nRange / MAX_MD_RANGE * 88)+10;
+	LTFLOAT fMag	= ((LTFLOAT)nRange / MaxRange() * 88)+10;
+#ifdef AVP2_PRIMAL_HUNT
+	if(IsCorporate())
+		fMag = ((LTFLOAT)nRange / MaxRange() * CORP_MD_BLIP_SCALE) + CORP_MD_BLIP_MIN;
+#endif
 
 	LTFLOAT fAngle	= vPlayerRight.Dot(vPlayerToObj);
 
@@ -1014,6 +1084,8 @@ LTBOOL CMotionDetector::UpdateDispBlipList(int nIndex, LTVector vPlayerPos, LTVe
 
 	m_BlipDispList.BlipDispArray[nIndex].pt.x = (int)(fMag * cos(fAngle));
 	m_BlipDispList.BlipDispArray[nIndex].pt.y = (int)(fMag * sin(fAngle));
+	if(IsCorporate() && bBehind)
+		m_BlipDispList.BlipDispArray[nIndex].pt.y = -m_BlipDispList.BlipDispArray[nIndex].pt.y;
 
 	if(nRange < (uint32)m_BlipDispList.nMinRange)
 		m_BlipDispList.nMinRange = nRange;
@@ -1054,6 +1126,28 @@ HSURFACE CMotionDetector::UpdateTracker(LTVector vPlayerPos, LTVector vPlayerFor
 	//norm vector
 	vPlayerToObj.Norm();
 
+#ifdef AVP2_PRIMAL_HUNT
+	if(IsCorporate())
+	{
+		LTFLOAT fRange = (LTFLOAT)nRange / MaxRange();
+		fRange = fRange > 1.0f ? 1.0f : fRange;
+		LTFLOAT fMag = fRange * CORP_MD_BLIP_SCALE + CORP_MD_BLIP_MIN;
+
+		LTFLOAT fCos = vPlayerRight.Dot(vPlayerToObj);
+		fCos = fCos < -1.0f ? -1.0f : fCos;
+		fCos = fCos > 1.0f ? 1.0f : fCos;
+		LTFLOAT fAngle = (LTFLOAT) acos(fCos);
+
+		m_ptTracker.x = (int)(fMag * cos(fAngle));
+		m_ptTracker.y = (int)(fMag * sin(fAngle));
+		if(vPlayerForward.Dot(vPlayerToObj) < 0)
+			m_ptTracker.y = -m_ptTracker.y;
+		m_ptTracker.y += 4;
+
+		return m_hTrackerBlip;
+	}
+#endif
+
 	//see if the object is infront of us
 	if(vPlayerForward.Dot(vPlayerToObj) <= 0)
 	{
@@ -1076,7 +1170,7 @@ HSURFACE CMotionDetector::UpdateTracker(LTVector vPlayerPos, LTVector vPlayerFor
 	else
 	{
 		//calculate right dot
-		LTFLOAT fMag	= nRange > MAX_MD_TRACKER_RANGE ? 98.0f : ((LTFLOAT)nRange / MAX_MD_RANGE * 88)+10;
+		LTFLOAT fMag	= nRange > MaxRange() ? 98.0f : ((LTFLOAT)nRange / MaxRange() * 88)+10;
 		LTFLOAT fAngle	= vPlayerRight.Dot(vPlayerToObj);
 
 		// Bounds check
