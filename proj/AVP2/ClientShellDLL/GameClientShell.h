@@ -263,6 +263,7 @@ class CGameClientShell : public CClientShellDE
 		LTBOOL		CanSpringJump();
 
 		LTBOOL		IsFacehugged()				{ return (m_hFacehugger != LTNULL); }
+		void		SkipDeath();
 		void		HideShowAttachments(HOBJECT hObj);
 		void		SetSFXandMusicVolume(LTFLOAT fSFX, LTFLOAT fMusic) { m_fSFXVolume=fSFX; m_fMusicVolume=fMusic; }
 

@@ -96,6 +96,9 @@ uint32 CGameClientShell::m_nCurrentSaveLoadVersion = 200108140;
 #define FORCE_RESPAWN_WAIT_TIME					10.0f
 #define MULTIPLAYER_FORCE_RESPAWN_WAIT_TIME		9.0f
 
+// How soon after dying the controllers can end the death scene (see SkipDeath)
+#define VR_DEATH_SKIP_WAIT_TIME					0.5f
+
 
 // IKCHAIN TESTING CODE!!
 //#define _IK_CHAIN_TEST_
@@ -5401,6 +5404,22 @@ void CGameClientShell::UnpackClientSaveMsg(HMESSAGEREAD hMessage)
 //	PURPOSE:	Handle player respawn
 //
 // --------------------------------------------------------------------------- //
+
+// In VR, any controller button ends the death scene: a key does on the flat screen (see OnKeyDown),
+// but sooner, as the floating camera is a long wait in the headset.
+void CGameClientShell::SkipDeath()
+{
+	if (!IsPlayerDead()) return;
+
+	if (IsMultiplayerGame())
+	{
+		HandleRespawn();
+		return;
+	}
+
+	if (g_pLTClient->GetTime() >= m_fEarliestRespawnTime - RESPAWN_WAIT_TIME + VR_DEATH_SKIP_WAIT_TIME)
+		m_InterfaceMgr.MissionFailed(IDS_SP_YOUWEREKILLED);
+}
 
 void CGameClientShell::HandleRespawn()
 {

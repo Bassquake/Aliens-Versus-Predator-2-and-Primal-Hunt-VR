@@ -1264,6 +1264,9 @@ void VRMgr::LeaveMenus()
 // Controller buttons go to the game the same way keys do: press and release as
 // OnCommandOn/OnCommandOff. Held buttons also feed the control flags (see PlayerMovement).
 
+// Buttons that don't end the death scene (see SkipDeath): they have a use of their own there
+#define VR_NO_DEATH_SKIP_BUTTONS	(AVP2XR_BTN_PAUSE | AVP2XR_BTN_OBJECTIVES | AVP2XR_BTN_ADJUST)
+
 static const struct { unsigned int nButton; int nCommand; } s_ButtonCommands[] =
 {
 	{ AVP2XR_BTN_FIRE,		COMMAND_ID_FIRING },
@@ -1291,6 +1294,8 @@ void VRMgr::UpdateButtons()
 	UpdateAdjust(nNow, nRawPressed);
 	if(m_bAdjusting)
 		nNow = (m_nAdjustHand == 2) ? (nNow & AVP2XR_BTN_FIRE) : 0;	// fitting the muzzle, fire to see it
+	else if(nRawPressed & ~VR_NO_DEATH_SKIP_BUTTONS)
+		g_pGameClientShell->SkipDeath();
 
 	// The left hand's gestures below are off while it holds the gun (the TwoHand button, the left
 	// grip), so moving it about on the gun doesn't bring out the hacking device or reload
@@ -2015,6 +2020,8 @@ void VRMgr::GetEyeCamera(int nEye, HCAMERA hCamera, const LTVector &vPos, const 
 		rYaw = m_rSurface * rYaw;
 		rEyeRot = rYaw * rHead;
 	}
+	else if(hCamera == g_pGameClientShell->Get3rdPersonCamera())
+		rEyeRot = rYaw * rHead;	// its orbit round the dead player tilts and rolls: only its yaw, so the world stays level
 	else
 		rEyeRot = rRot * rHead;	// other cameras (cutscenes) keep their scripted rotation
 
