@@ -47,6 +47,8 @@ struct MDDispBlipList
 class CMotionDetector
 {
 public:
+	void		SetOffsets();	// places the tracker (public: CHudMgr::UpdateLayout re-places it)
+	LTIntPt		GetVRAnchorPt()	{ return m_ptVRAnchor; }	// VR: the corner it's sized about
 	//constructor / destructor
 	CMotionDetector		();
 	~CMotionDetector	() { Term(); }
@@ -68,6 +70,7 @@ public:
 private:
 
 	CPlayerStats*	m_pPlayerStats;		//pointer to player stats class
+	LTIntPt			m_ptVRAnchor;		//GetVRAnchorPt
 	MDBlip			m_pBlipArray[MAX_BLIPS]; //array of motion detector blips
 	MDDispBlipList	m_BlipDispList;	//array of motion detector blips for display
 
@@ -90,7 +93,6 @@ private:
 	void		DrawMDBase	();
 	void		LoadFonts();
 	void		LoadImages();
-	void		SetOffsets();
 
 	LithFont*	m_pSmallNums;	//pointer to small number font
 	LithFont*	m_pLargeNums;	//pointer to large number font

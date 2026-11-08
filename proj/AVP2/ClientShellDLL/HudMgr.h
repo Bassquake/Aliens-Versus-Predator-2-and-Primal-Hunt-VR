@@ -126,6 +126,11 @@ public:
 	void	Term				();
 	void	LoadAnimation		(char * pTag, uint32 nIndex);
 	void	SetRects			();
+	void	SetDest				();		// m_ptDest from the offset, plus avp2xr.ini's HUD part offset
+	// VR: which avp2xr.ini HUD part this is (VR_HUD_*) and the screen point it's sized about
+	void	SetVRAnchor			(int nAnchor, LTIntPt pt)	{ m_nVRAnchor = nAnchor; m_ptVRAnchor = pt; }
+	int		GetVRAnchor			()	{ return m_nVRAnchor; }
+	LTIntPt	GetVRAnchorPt		()	{ return m_ptVRAnchor; }
 
 	void	(CHudMgr::*m_pDrawFunction)		(CHudElement *pHudElement);
 	void	(CHudMgr::*m_pUpdateFunction)	(CHudElement *pHudElement);
@@ -168,6 +173,8 @@ private:
 	LTIntPt		m_ptOffset;		//where this element is displayed
 	uint32		m_nOffsetType;	//type of offset
 	LTIntPt		m_ptDest;		//destination top left corner
+	int			m_nVRAnchor;	//VR: SetVRAnchor
+	LTIntPt		m_ptVRAnchor;	//VR: SetVRAnchor
 	LTRect		m_rcHalfHeight;	//top half of source rectangle
 	LTRect		m_rcImgSrc;		//entire source rectangle
 	LTRect		m_rcDspSrc;		//display source rectangle
@@ -200,6 +207,7 @@ public:
 	void SetFunctionPointers (char * pTag, uint32 nIndex);
 	void LoadFonts		(char * pTag);
 	void DrawHud		();
+	void UpdateLayout	();		// re-places the elements and tracker (avp2xr.ini HUD part offsets changed)
 	void UpdateHud		();
 	void Reset			() { m_nHudId = -1; }
 	

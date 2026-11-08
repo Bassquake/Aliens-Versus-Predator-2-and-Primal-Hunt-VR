@@ -19,6 +19,10 @@
 #include "PlayerStats.h"
 #include "MotionDetector.h"
 
+// VR: avp2xr.ini HUD part sizes (defined below, before CHudMgr::UpdateLayout)
+LTBOOL VRHudScaleBegin(int nAnchor, LTIntPt ptAnchor);
+void VRHudScaleEnd();
+
 VarTrack	g_cvarIconOffset;
 VarTrack	g_cvarNumIcons;
 VarTrack	g_cvarHorizIcons;
@@ -320,6 +324,165 @@ void CHudMgr::LoadFonts(char * pTag)
 // Cycles thru the hud elements, calling the draw function
 //
 // -----------------------------------------------/
+// -----------------------------------------------/
+//
+// VR: avp2xr.ini HUD part sizes (HudTopLeftScale etc.)
+//
+// A HUD part is drawn with many blits (its images, fills and font glyphs, the fonts from a prebuilt
+// library), all through ILTClient's surface function pointers. While a scaled part draws, those
+// pointers are swapped for ones that map each blit to the screen about the part's anchor point
+// and draw it with the matching Scale call; then the originals go back.
+//
+// -----------------------------------------------/
+static struct VRHudScaleState
+{
+	HSURFACE	hScreen;
+	LTFLOAT		fScale;
+	int			nAnchorX, nAnchorY;
+	LTRESULT	(*pDraw)(HSURFACE, HSURFACE, LTRect*, int, int);
+	LTRESULT	(*pDrawTrans)(HSURFACE, HSURFACE, LTRect*, int, int, HLTCOLOR);
+	LTRESULT	(*pDrawSolid)(HSURFACE, HSURFACE, LTRect*, int, int, HLTCOLOR, HLTCOLOR);
+	LTRESULT	(*pScale)(HSURFACE, HSURFACE, LTRect*, LTRect*);
+	LTRESULT	(*pScaleTrans)(HSURFACE, HSURFACE, LTRect*, LTRect*, HLTCOLOR);
+	LTRESULT	(*pScaleSolid)(HSURFACE, HSURFACE, LTRect*, LTRect*, HLTCOLOR, HLTCOLOR);
+	LTRESULT	(*pFillRect)(HSURFACE, LTRect*, HLTCOLOR);
+} s_VRHud;
+static LTBOOL s_bVRHudScaling = LTFALSE;
+
+static int VRHudMapX(int x) { return s_VRHud.nAnchorX + (int)floor((x - s_VRHud.nAnchorX) * s_VRHud.fScale + 0.5f); }
+static int VRHudMapY(int y) { return s_VRHud.nAnchorY + (int)floor((y - s_VRHud.nAnchorY) * s_VRHud.fScale + 0.5f); }
+
+static LTRect VRHudMapRect(const LTRect &rc)
+{
+	return LTRect(VRHudMapX(rc.left), VRHudMapY(rc.top), VRHudMapX(rc.right), VRHudMapY(rc.bottom));
+}
+
+// The screen rectangle a blit of pSrcRect (or all of hSrc) at x, y covers, mapped
+static LTRect VRHudMapBlit(HSURFACE hSrc, LTRect *pSrcRect, int x, int y, LTRect &rcSrc)
+{
+	if(pSrcRect)
+		rcSrc = *pSrcRect;
+	else
+	{
+		uint32 nW = 0, nH = 0;
+		g_pLTClient->GetSurfaceDims(hSrc, &nW, &nH);
+		rcSrc = LTRect(0, 0, nW, nH);
+	}
+	return VRHudMapRect(LTRect(x, y, x + rcSrc.right - rcSrc.left, y + rcSrc.bottom - rcSrc.top));
+}
+
+static LTBOOL VRHudEmpty(const LTRect &rc) { return rc.right <= rc.left || rc.bottom <= rc.top; }
+
+static LTRESULT VRHudDraw(HSURFACE hDest, HSURFACE hSrc, LTRect *pSrcRect, int x, int y)
+{
+	if(hDest != s_VRHud.hScreen)
+		return s_VRHud.pDraw(hDest, hSrc, pSrcRect, x, y);
+	LTRect rcSrc, rcDest = VRHudMapBlit(hSrc, pSrcRect, x, y, rcSrc);
+	return VRHudEmpty(rcDest) ? LT_OK : s_VRHud.pScale(hDest, hSrc, &rcDest, &rcSrc);
+}
+
+static LTRESULT VRHudDrawTrans(HSURFACE hDest, HSURFACE hSrc, LTRect *pSrcRect, int x, int y, HLTCOLOR hColor)
+{
+	if(hDest != s_VRHud.hScreen)
+		return s_VRHud.pDrawTrans(hDest, hSrc, pSrcRect, x, y, hColor);
+	LTRect rcSrc, rcDest = VRHudMapBlit(hSrc, pSrcRect, x, y, rcSrc);
+	return VRHudEmpty(rcDest) ? LT_OK : s_VRHud.pScaleTrans(hDest, hSrc, &rcDest, &rcSrc, hColor);
+}
+
+static LTRESULT VRHudDrawSolid(HSURFACE hDest, HSURFACE hSrc, LTRect *pSrcRect, int x, int y, HLTCOLOR hTrans, HLTCOLOR hFill)
+{
+	if(hDest != s_VRHud.hScreen)
+		return s_VRHud.pDrawSolid(hDest, hSrc, pSrcRect, x, y, hTrans, hFill);
+	LTRect rcSrc, rcDest = VRHudMapBlit(hSrc, pSrcRect, x, y, rcSrc);
+	return VRHudEmpty(rcDest) ? LT_OK : s_VRHud.pScaleSolid(hDest, hSrc, &rcDest, &rcSrc, hTrans, hFill);
+}
+
+static LTRESULT VRHudScale(HSURFACE hDest, HSURFACE hSrc, LTRect *pDestRect, LTRect *pSrcRect)
+{
+	if(hDest != s_VRHud.hScreen || !pDestRect)
+		return s_VRHud.pScale(hDest, hSrc, pDestRect, pSrcRect);
+	LTRect rcDest = VRHudMapRect(*pDestRect);
+	return VRHudEmpty(rcDest) ? LT_OK : s_VRHud.pScale(hDest, hSrc, &rcDest, pSrcRect);
+}
+
+static LTRESULT VRHudScaleTrans(HSURFACE hDest, HSURFACE hSrc, LTRect *pDestRect, LTRect *pSrcRect, HLTCOLOR hColor)
+{
+	if(hDest != s_VRHud.hScreen || !pDestRect)
+		return s_VRHud.pScaleTrans(hDest, hSrc, pDestRect, pSrcRect, hColor);
+	LTRect rcDest = VRHudMapRect(*pDestRect);
+	return VRHudEmpty(rcDest) ? LT_OK : s_VRHud.pScaleTrans(hDest, hSrc, &rcDest, pSrcRect, hColor);
+}
+
+static LTRESULT VRHudScaleSolid(HSURFACE hDest, HSURFACE hSrc, LTRect *pDestRect, LTRect *pSrcRect, HLTCOLOR hTrans, HLTCOLOR hFill)
+{
+	if(hDest != s_VRHud.hScreen || !pDestRect)
+		return s_VRHud.pScaleSolid(hDest, hSrc, pDestRect, pSrcRect, hTrans, hFill);
+	LTRect rcDest = VRHudMapRect(*pDestRect);
+	return VRHudEmpty(rcDest) ? LT_OK : s_VRHud.pScaleSolid(hDest, hSrc, &rcDest, pSrcRect, hTrans, hFill);
+}
+
+static LTRESULT VRHudFillRect(HSURFACE hDest, LTRect *pRect, HLTCOLOR hColor)
+{
+	if(hDest != s_VRHud.hScreen || !pRect)
+		return s_VRHud.pFillRect(hDest, pRect, hColor);
+	LTRect rc = VRHudMapRect(*pRect);
+	return VRHudEmpty(rc) ? LT_OK : s_VRHud.pFillRect(hDest, &rc, hColor);
+}
+
+// LTTRUE if the part at nAnchor is sized (then call VRHudScaleEnd after drawing it)
+LTBOOL VRHudScaleBegin(int nAnchor, LTIntPt ptAnchor)
+{
+	if(s_bVRHudScaling || !g_pLTClient || !g_pGameClientShell)
+		return LTFALSE;
+	LTFLOAT fScale = g_pGameClientShell->GetVRMgr()->GetHudScale(nAnchor);
+	if(fScale == 1.0f)
+		return LTFALSE;
+
+	s_VRHud.hScreen		= g_pLTClient->GetScreenSurface();
+	s_VRHud.fScale		= fScale;
+	s_VRHud.nAnchorX	= ptAnchor.x;
+	s_VRHud.nAnchorY	= ptAnchor.y;
+	s_VRHud.pDraw		= g_pLTClient->DrawSurfaceToSurface;
+	s_VRHud.pDrawTrans	= g_pLTClient->DrawSurfaceToSurfaceTransparent;
+	s_VRHud.pDrawSolid	= g_pLTClient->DrawSurfaceSolidColor;
+	s_VRHud.pScale		= g_pLTClient->ScaleSurfaceToSurface;
+	s_VRHud.pScaleTrans	= g_pLTClient->ScaleSurfaceToSurfaceTransparent;
+	s_VRHud.pScaleSolid	= g_pLTClient->ScaleSurfaceToSurfaceSolidColor;
+	s_VRHud.pFillRect	= g_pLTClient->FillRect;
+
+	g_pLTClient->DrawSurfaceToSurface				= VRHudDraw;
+	g_pLTClient->DrawSurfaceToSurfaceTransparent	= VRHudDrawTrans;
+	g_pLTClient->DrawSurfaceSolidColor				= VRHudDrawSolid;
+	g_pLTClient->ScaleSurfaceToSurface				= VRHudScale;
+	g_pLTClient->ScaleSurfaceToSurfaceTransparent	= VRHudScaleTrans;
+	g_pLTClient->ScaleSurfaceToSurfaceSolidColor	= VRHudScaleSolid;
+	g_pLTClient->FillRect							= VRHudFillRect;
+	s_bVRHudScaling = LTTRUE;
+	return LTTRUE;
+}
+
+void VRHudScaleEnd()
+{
+	if(!s_bVRHudScaling)
+		return;
+	g_pLTClient->DrawSurfaceToSurface				= s_VRHud.pDraw;
+	g_pLTClient->DrawSurfaceToSurfaceTransparent	= s_VRHud.pDrawTrans;
+	g_pLTClient->DrawSurfaceSolidColor				= s_VRHud.pDrawSolid;
+	g_pLTClient->ScaleSurfaceToSurface				= s_VRHud.pScale;
+	g_pLTClient->ScaleSurfaceToSurfaceTransparent	= s_VRHud.pScaleTrans;
+	g_pLTClient->ScaleSurfaceToSurfaceSolidColor	= s_VRHud.pScaleSolid;
+	g_pLTClient->FillRect							= s_VRHud.pFillRect;
+	s_bVRHudScaling = LTFALSE;
+}
+
+void CHudMgr::UpdateLayout ()
+{
+	for(uint32 i=0 ; m_paHudElements && i<m_nNumHudElements ; i++)
+		m_paHudElements[i].SetDest();
+	if(m_pMotionDetector)
+		m_pMotionDetector->SetOffsets();
+}
+
 void CHudMgr::DrawHud ()
 {
 	//check to see if HUD is enabled
@@ -328,7 +491,11 @@ void CHudMgr::DrawHud ()
 		//draw the elements
 		for(uint32 i=0 ; i<m_nNumHudElements ; i++)
 		{
+			// VR: avp2xr.ini's size for this part
+			LTBOOL bScaled = VRHudScaleBegin(m_paHudElements[i].GetVRAnchor(), m_paHudElements[i].GetVRAnchorPt());
 			(this->*(m_paHudElements[i].m_pDrawFunction))(&m_paHudElements[i]);
+			if(bScaled)
+				VRHudScaleEnd();
 		}
 	}
 
@@ -337,7 +504,10 @@ void CHudMgr::DrawHud ()
 		uint32 dwFlags;
 		g_pLTClient->GetObjectUserFlags(g_pLTClient->GetClientObject(), &dwFlags);
 
+		LTBOOL bScaled = VRHudScaleBegin(VR_HUD_TRACKER, m_pMotionDetector->GetVRAnchorPt());
 		m_pMotionDetector->Draw(dwFlags & USRFLG_CHAR_EMPEFFECT);
+		if(bScaled)
+			VRHudScaleEnd();
 	}
 
 }
@@ -1113,7 +1283,11 @@ void CHudMgr::UpdateAlienHealth	(CHudElement *pHudElement)
 	//set new offset
 	ptDest.x = (nScreenWidth>>1) - (pHudElement->GetImgSrcRect().right>>1);
 	ptDest.y = nScreenHeight - (nScreenHeight>>4);
+	LTIntPt ptShift = VRHudShift(VR_HUD_BOTTOM, 1, -1, nScreenWidth, nScreenHeight);	// avp2xr.ini HudBottom
+	ptDest.x += ptShift.x;
+	ptDest.y += ptShift.y;
 	pHudElement->SetDestPt(ptDest);
+	pHudElement->SetVRAnchor(VR_HUD_BOTTOM, LTIntPt((nScreenWidth >> 1) + ptShift.x, nScreenHeight + ptShift.y));
 
 	//incriment based on time
 	if(nDisHealth < nHealth) 
@@ -3085,6 +3259,8 @@ void CHudMgr::Load(HMESSAGEREAD hRead)
 // -----------------------------------------------/
 CHudElement::CHudElement()
 {
+	m_nVRAnchor		= VR_HUD_TOPLEFT;
+	m_ptVRAnchor	= LTIntPt(0, 0);
 	m_nID			= 0;			
 	m_bEnabled		= LTFALSE;
 	m_bTransparent	= LTFALSE; 
@@ -3291,23 +3467,23 @@ void CHudElement::LoadAnimation(char * pTag, uint32 nIndex)
 // Routine that sets various rectangles for drawing
 //
 // -----------------------------------------------/
-void CHudElement::SetRects()
+void CHudElement::SetDest()
 {
-	//local variables
-	uint32		nWidth, nHeight, nScreenWidth, nScreenHeight;
-
-	//get the dims of our surface
-	g_pLTClient->GetSurfaceDims(m_hSurface, &nWidth, &nHeight);
+	uint32		nScreenWidth, nScreenHeight;
 
 	//get the dims of the screen
 	g_pLTClient->GetSurfaceDims(g_pLTClient->GetScreenSurface(),
 								&nScreenWidth, &nScreenHeight);
 	
 	//set the dest point (neg offsets are from right and bottom)
+	// VR: and which avp2xr.ini HUD part offset moves it (the anchor, and which way is inward)
+	int nAnchor = VR_HUD_TOPLEFT;
+	int nInX = 1, nInY = 1;
 	switch(m_nOffsetType)
 	{
 	case(0):
 		{
+			LTBOOL bRight = !(m_ptOffset.x > 0), bBottom = !(m_ptOffset.y > 0);
 			if(m_ptOffset.x > 0)
 				m_ptDest.x	= m_ptOffset.x;
 			else
@@ -3317,33 +3493,72 @@ void CHudElement::SetRects()
 				m_ptDest.y	= m_ptOffset.y;
 			else
 				m_ptDest.y	= nScreenHeight + m_ptOffset.y;
+			nAnchor = bBottom ? (bRight ? VR_HUD_BOTTOMRIGHT : VR_HUD_BOTTOMLEFT)
+							  : (bRight ? VR_HUD_TOPRIGHT : VR_HUD_TOPLEFT);
+			nInX = bRight ? -1 : 1;
+			nInY = bBottom ? -1 : 1;
 			break;
 		}
 	case(1):
 		{
 			m_ptDest.x	= nScreenWidth - m_ptOffset.x;
 			m_ptDest.y	= (nScreenHeight>>1) + m_ptOffset.y;
+			nAnchor = VR_HUD_RIGHT;
+			nInX = -1;
 			break;
 		}
 	case(2):
 		{
 			m_ptDest.x	= m_ptOffset.x;
 			m_ptDest.y	= (nScreenHeight>>1) + m_ptOffset.y;
+			nAnchor = VR_HUD_LEFT;
 			break;
 		}
 	case(3):
 		{
 			m_ptDest.x	= (nScreenWidth>>1) + m_ptOffset.x;
 			m_ptDest.y	= nScreenHeight-m_ptOffset.y;
+			nAnchor = VR_HUD_BOTTOM;
+			nInY = -1;
 			break;
 		}
 	case(4):
 		{
 			m_ptDest.x	= (nScreenWidth>>1) + m_ptOffset.x;
 			m_ptDest.y	= m_ptOffset.y;
+			nAnchor = VR_HUD_TOP;
 			break;
 		}
 	}
+
+	LTIntPt ptShift = VRHudShift(nAnchor, nInX, nInY, nScreenWidth, nScreenHeight);
+	m_ptDest.x += ptShift.x;
+	m_ptDest.y += ptShift.y;
+
+	// The point its avp2xr.ini <part>Scale sizes it about: its corner or edge, moved like it
+	LTIntPt ptAnchor;
+	switch(nAnchor)
+	{
+	case VR_HUD_TOP:	ptAnchor = LTIntPt(nScreenWidth >> 1, 0); break;
+	case VR_HUD_BOTTOM:	ptAnchor = LTIntPt(nScreenWidth >> 1, nScreenHeight); break;
+	case VR_HUD_LEFT:	ptAnchor = LTIntPt(0, nScreenHeight >> 1); break;
+	case VR_HUD_RIGHT:	ptAnchor = LTIntPt(nScreenWidth, nScreenHeight >> 1); break;
+	default:			ptAnchor = LTIntPt(nInX < 0 ? nScreenWidth : 0, nInY < 0 ? nScreenHeight : 0); break;
+	}
+	ptAnchor.x += ptShift.x;
+	ptAnchor.y += ptShift.y;
+	SetVRAnchor(nAnchor, ptAnchor);
+}
+
+void CHudElement::SetRects()
+{
+	//local variables
+	uint32		nWidth, nHeight;
+
+	//get the dims of our surface
+	g_pLTClient->GetSurfaceDims(m_hSurface, &nWidth, &nHeight);
+
+	SetDest();
 
 	//set entire src rect
 	m_rcImgSrc.left		= 0;

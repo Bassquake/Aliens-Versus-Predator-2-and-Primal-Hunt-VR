@@ -65,3 +65,25 @@ I've tried to map as many of the functions to the controllers buttons as there a
 
 ## Tip
 There's many customisation options in **avp2xr.ini** for controls/button mapping and a number of other settings can be found in there to customise positioning of HUD and weapons etc. Too many to list here so read the comments what each one does.
+
+## Adjusting the HUD
+New in v0.6: each part of the HUD can be moved and resized separately in the **[VR]** section of **avp2xr.ini**. Settings are read when the game starts, so restart it after a change.
+
+- **HudWidth** / **HudDistance** / **HudHeight** size and place the whole HUD panel, as before.
+- **Move a part:** `HudTopLeft`, `HudTopRight`, `HudBottomLeft`, `HudBottomRight`, `HudTop`, `HudBottom`, `HudLeft`, `HudRight` and `HudMotionTracker` each take two numbers, `x y`, in percent of the screen. Positive moves the part inward toward the centre, negative moves it out. For a part centred on an edge (`HudTop`, `HudBottom`), the other number slides it along the edge (x right, y down).
+- **Move everything at once:** `HudInset` pulls every part inward, e.g. `HudInset=5 5`. Each part's own setting is added to it.
+- **Resize a part:** add `Scale` to the name, e.g. `HudMotionTrackerScale=0.75` for a smaller motion tracker. 1 is the original size, from 0.25 to 3. A part shrinks toward its own corner or edge. Very small sizes lose some detail in thin lines and text.
+
+Where each part sits:
+
+| Species | Top left | Top right | Bottom left | Bottom right | Top centre | Bottom centre |
+|---|---|---|---|---|---|---|
+| Marine | Health, armour, battery, air | Flares | Motion tracker (`HudMotionTracker`) | Ammo | Boss health | |
+| Predator | Health | Energy | Skull count | Air | Boss health | |
+| Alien | | | | | Boss health | Health |
+
+Example: pull the whole HUD in a little and shrink the Marine's motion tracker:
+```
+HudInset=4 4
+HudMotionTrackerScale=0.75
+```

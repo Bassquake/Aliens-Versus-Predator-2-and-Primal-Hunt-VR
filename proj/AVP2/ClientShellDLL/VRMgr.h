@@ -13,6 +13,21 @@
 #include "cameramgrdefs.h"
 #include "../../avp2xr/avp2xr_api.h"
 
+// Where the game anchors a HUD part (Attributes\Layout.txt DestOffset/DestOffsetType), for
+// avp2xr.ini's HUD part offsets (VRMgr::GetHudOffset)
+enum
+{
+	VR_HUD_TOPLEFT, VR_HUD_TOPRIGHT, VR_HUD_BOTTOMLEFT, VR_HUD_BOTTOMRIGHT,
+	VR_HUD_TOP, VR_HUD_BOTTOM, VR_HUD_LEFT, VR_HUD_RIGHT,	// centred on that edge
+	VR_HUD_TRACKER,											// the Marine motion tracker
+	VR_HUD_ANCHORS
+};
+
+// How far avp2xr.ini moves a HUD part placed at anchor nAnchor, in screen pixels. nInX/nInY: +1 if
+// that axis is placed from the left/top (or centred), -1 from the right/bottom, so inward is the
+// right way. Zero without avp2xr.
+LTIntPt VRHudShift(int nAnchor, int nInX, int nInY, uint32 nScreenWidth, uint32 nScreenHeight);
+
 // ----------------------------------------------------------------------- //
 // Each eye is rendered into its own half of the back buffer (left eye on the left). The
 // avp2xr proxy hands the halves to OpenXR as a projection layer.
@@ -62,6 +77,17 @@ class VRMgr
 
 		// avp2xr.ini ZoomSteps: how many zoom levels the Zoom button steps through (1-3)
 		int			GetZoomSteps() const					{ return m_nZoomSteps; }
+
+		// avp2xr.ini HUD part offsets (HudTopLeft etc.), percent of the screen: for an anchor
+		// (VR_HUD_*), how far to move what the game places there. x and y are inward from the side
+		// it's anchored to (toward the centre); on an axis it's centred on, x is right and y down.
+		// HudInset is already added in. Zero until avp2xr is found.
+		void		GetHudOffset(int nAnchor, LTFLOAT &fX, LTFLOAT &fY) const
+						{ fX = m_fHudOffset[nAnchor][0]; fY = m_fHudOffset[nAnchor][1]; }
+
+		// avp2xr.ini HUD part sizes (HudTopLeftScale etc.): 1 = as the game draws it; the part
+		// shrinks or grows about its corner or edge. 1 until avp2xr is found.
+		LTFLOAT		GetHudScale(int nAnchor) const			{ return m_fHudScale[nAnchor]; }
 
 		// LTTRUE while VR is in use (the avp2xr proxy is there and VREnable is on): the mouse
 		// cursor is then kept hidden, since the controllers work the menus.
@@ -239,6 +265,8 @@ class VRMgr
 		LTFLOAT			m_fEyeZoom;				// SetEyeZoom
 		LTFLOAT			m_fZoomStrength;		// avp2xr.ini ZoomStrength: 1 = the game's zoom, 0 = none
 		int				m_nZoomSteps;			// avp2xr.ini ZoomSteps
+		LTFLOAT			m_fHudOffset[VR_HUD_ANCHORS][2];	// GetHudOffset
+		LTFLOAT			m_fHudScale[VR_HUD_ANCHORS];		// GetHudScale
 		LTBOOL			m_bAlwaysRun;			// avp2xr.ini AlwaysRun
 		LTBOOL			m_bSkipCutscenes;		// avp2xr.ini SpeedThroughCutscenes
 		LTBOOL			m_bInCutscene;			// the cinematic camera was active last frame

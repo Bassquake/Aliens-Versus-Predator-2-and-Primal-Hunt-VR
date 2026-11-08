@@ -514,6 +514,20 @@ static LTBOOL GetHandVectors(const LTVector &vWrist, const LTVector &vMiddle, co
 
 // ----------------------------------------------------------------------- //
 
+LTIntPt VRHudShift(int nAnchor, int nInX, int nInY, uint32 nScreenWidth, uint32 nScreenHeight)
+{
+	LTIntPt pt(0, 0);
+	if(!g_pGameClientShell || nAnchor < 0 || nAnchor >= VR_HUD_ANCHORS)
+		return pt;
+	LTFLOAT fX, fY;
+	g_pGameClientShell->GetVRMgr()->GetHudOffset(nAnchor, fX, fY);
+	pt.x = (int)floor(fX * nScreenWidth / 100.0f * nInX + 0.5f);
+	pt.y = (int)floor(fY * nScreenHeight / 100.0f * nInY + 0.5f);
+	return pt;
+}
+
+// ----------------------------------------------------------------------- //
+
 VRMgr::VRMgr()
 {
 	m_pApi = LTNULL;
@@ -523,6 +537,9 @@ VRMgr::VRMgr()
 	m_fEyeZoom = 1.0f;
 	m_fZoomStrength = 1.0f;
 	m_nZoomSteps = 3;
+	memset(m_fHudOffset, 0, sizeof(m_fHudOffset));
+	for(int nHud = 0; nHud < VR_HUD_ANCHORS; nHud++)
+		m_fHudScale[nHud] = 1.0f;
 	m_bAlwaysRun = LTFALSE;
 	m_bSkipCutscenes = LTFALSE;
 	m_bInCutscene = LTFALSE;
@@ -802,6 +819,46 @@ LTBOOL VRMgr::FindApi()
 				GetPrivateProfileStringA("VR", "ZoomSteps", "3", szValue, sizeof(szValue), szIni);
 				m_nZoomSteps = atoi(szValue);
 				VRLog("Settings: ZoomStrength=%.2f ZoomSteps=%d", m_fZoomStrength, m_nZoomSteps);
+
+				// HUD parts moved, percent of the screen: "x y", inward from their side of the screen
+				// (on an axis a part is centred on, x is right and y down). HudInset is added to all
+				// the inward ones. The HUD sits wide in the headset, so pulling the corners in helps.
+				{
+					static const char *szHudKeys[VR_HUD_ANCHORS] = { "HudTopLeft", "HudTopRight", "HudBottomLeft",
+						"HudBottomRight", "HudTop", "HudBottom", "HudLeft", "HudRight", "HudMotionTracker" };
+					// Which axes are inward for each anchor (the others run along a centred edge)
+					static const LTBOOL bInward[VR_HUD_ANCHORS][2] = { {1,1}, {1,1}, {1,1}, {1,1},
+						{0,1}, {0,1}, {1,0}, {1,0}, {1,1} };
+					char szPair[64];
+					GetPrivateProfileStringA("VR", "HudInset", "0 0", szPair, sizeof(szPair), szIni);
+					LTFLOAT fInset[2] = { 0.0f, 0.0f };
+					sscanf(szPair, "%f %f", &fInset[0], &fInset[1]);
+					for(int h = 0; h < VR_HUD_ANCHORS; h++)
+					{
+						LTFLOAT fPart[2] = { 0.0f, 0.0f };
+						GetPrivateProfileStringA("VR", szHudKeys[h], "0 0", szPair, sizeof(szPair), szIni);
+						sscanf(szPair, "%f %f", &fPart[0], &fPart[1]);
+						for(int ax = 0; ax < 2; ax++)
+							m_fHudOffset[h][ax] = fPart[ax] + (bInward[h][ax] ? fInset[ax] : 0.0f);
+						if(m_fHudOffset[h][0] != 0.0f || m_fHudOffset[h][1] != 0.0f)
+							VRLog("Settings: %s=%.1f %.1f (%% of the screen, HudInset included)", szHudKeys[h],
+								m_fHudOffset[h][0], m_fHudOffset[h][1]);
+						// ...and its size: <key>Scale, e.g. HudMotionTrackerScale=0.75
+						char szScaleKey[40];
+						sprintf(szScaleKey, "%sScale", szHudKeys[h]);
+						GetPrivateProfileStringA("VR", szScaleKey, "1", szPair, sizeof(szPair), szIni);
+						LTFLOAT fScale = (LTFLOAT)atof(szPair);
+						if(fScale <= 0.0f) fScale = 1.0f;
+						if(fScale < 0.25f) fScale = 0.25f;
+						if(fScale > 3.0f) fScale = 3.0f;
+						m_fHudScale[h] = fScale;
+						if(fScale != 1.0f)
+							VRLog("Settings: %s=%.2f", szScaleKey, fScale);
+					}
+					// The HUD may already be laid out (the settings are read when avp2xr is first found)
+					if(g_pInterfaceMgr)
+						g_pInterfaceMgr->GetHudMgr()->UpdateLayout();
+				}
 				GetPrivateProfileStringA("VR", "SpeedThroughCutscenes", "no", szValue, sizeof(szValue), szIni);
 				m_bSkipCutscenes = szValue[0] && !strchr("nN0fF", szValue[0]);
 				VRLog("Settings: SpeedThroughCutscenes=%s", m_bSkipCutscenes ? "yes" : "no");

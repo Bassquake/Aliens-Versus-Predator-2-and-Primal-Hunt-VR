@@ -238,6 +238,17 @@ void CMotionDetector::SetOffsets()
 
 	if(m_ptBaseOffset.y > 0) m_ptBaseDest.y	= m_ptBaseOffset.y;
 	else m_ptBaseDest.y	= nScreenHeight + m_ptBaseOffset.y;
+
+	// VR: avp2xr.ini HudMotionTracker moves the grid and base together, inward from the base's corner
+	LTIntPt ptShift = VRHudShift(VR_HUD_TRACKER, m_ptBaseOffset.x > 0 ? 1 : -1, m_ptBaseOffset.y > 0 ? 1 : -1,
+								 nScreenWidth, nScreenHeight);
+	m_ptGridDest.x += ptShift.x;
+	m_ptGridDest.y += ptShift.y;
+	m_ptBaseDest.x += ptShift.x;
+	m_ptBaseDest.y += ptShift.y;
+	// ...and HudMotionTrackerScale sizes it about that (moved) corner
+	m_ptVRAnchor.x = (m_ptBaseOffset.x > 0 ? 0 : (int)nScreenWidth) + ptShift.x;
+	m_ptVRAnchor.y = (m_ptBaseOffset.y > 0 ? 0 : (int)nScreenHeight) + ptShift.y;
 }
 
 // -----------------------------------------------/
