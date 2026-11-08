@@ -27,6 +27,7 @@
 #include <openxr/openxr_platform.h>
 
 #include "avp2xr_api.h"
+#include "xrlayers.h"
 
 // ---------------------------------------------------------------------------------------------
 // Logging
@@ -448,6 +449,8 @@ static bool XrInit(ID3D11Device* device)
 	ci.applicationInfo.apiVersion = XR_API_VERSION_1_0;
 	ci.enabledExtensionCount = 1;
 	ci.enabledExtensionNames = extensions;
+	// A registered layer this 32-bit game can't load fails xrCreateInstance (see xrlayers.h).
+	xrlayers::DisableUnloadable([](const char* line) { Log("%s", line); });
 	XrResult r = x_xrCreateInstance(&ci, &g_instance);
 	// Steam sets XR_RUNTIME_JSON to the 64-bit SteamVR runtime for games it launches as VR, which
 	// this 32-bit game can't load; without it the loader uses the registered 32-bit runtime.
@@ -461,6 +464,9 @@ static bool XrInit(ID3D11Device* device)
 		runtimeJson[0] = 0;
 		r = x_xrCreateInstance(&ci, &g_instance);
 	}
+	if (r == XR_ERROR_FILE_ACCESS_ERROR)
+		Log("xrCreateInstance failed loading an OpenXR API layer registered for 32-bit apps; "
+			"set XR_LOADER_DEBUG=all to see which one");
 	if (XR_FAILED(r))
 	{
 		Log("xrCreateInstance failed: %s. Is the OpenXR runtime (SteamVR / Meta) running, and is "

@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 #include <openxr/openxr.h>
+#include "xrlayers.h"
 
 static std::wstring g_dir;  // the folder this exe is in (the game folder), with a trailing backslash
 
@@ -51,7 +52,12 @@ static bool QueryRecommended(uint32_t& width, uint32_t& height, uint32_t& maxWid
 	ci.applicationInfo.engineVersion = 1;
 	ci.applicationInfo.apiVersion = XR_API_VERSION_1_0;
 	XrInstance instance = XR_NULL_HANDLE;
+	// A registered layer this 32-bit exe can't load fails xrCreateInstance (see xrlayers.h).
+	xrlayers::DisableUnloadable([](const char* line) { fprintf(stderr, "xrres: %s\n", line); });
 	XrResult r = createInstance(&ci, &instance);
+	if (r == XR_ERROR_FILE_ACCESS_ERROR)
+		Fail("xrCreateInstance failed (%d): an OpenXR API layer registered for 32-bit apps can't be loaded; "
+			"run with XR_LOADER_DEBUG=all to see which", (int)r);
 	if (XR_FAILED(r))
 		Fail("xrCreateInstance failed (%d): is the OpenXR runtime (SteamVR / Meta) available?", (int)r);
 
